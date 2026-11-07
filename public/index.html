@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>우리집 팀 오락실</title>
+<title>우리집 팀 오락실 (P2P 멀티)</title>
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{--bg:#fff4e0;--card:#fff;--ink:#4a3b5c;--pop:#ff8fab;--ok:#7ed957;--alt:#6ec6ff}
@@ -21,11 +21,6 @@ body{background:var(--bg);color:var(--ink);font-family:"Jua",sans-serif;text-ali
 .team .plist{margin-top:6px;font-size:0.85rem;background:rgba(0,0,0,0.15);border-radius:10px;padding:4px;min-height:36px}
 .member-tag{display:inline-block;background:rgba(255,255,255,0.3);border-radius:6px;padding:2px 5px;margin:2px}
 .pick{opacity:0.5;cursor:pointer}.pick.on{opacity:1;transform:scale(1.03);border-width:4px}
-.bar{display:flex;align-items:center;gap:6px;margin:6px 0;text-align:left}
-.bar .nm{width:100px;flex:none}
-.bar .tr{flex:1;background:rgba(0,0,0,0.08);border-radius:99px;height:24px;overflow:hidden;border:2px solid var(--ink)}
-.bar .fl{height:100%}
-.bar .v{width:60px;text-align:right;font-weight:700}
 .huge{font-size:4.5rem;margin:10px 0}
 input{font:inherit;font-size:1.2rem;border:3px solid var(--ink);border-radius:14px;padding:8px;width:80%;text-align:center;background:var(--card);color:var(--ink)}
 .pad{height:40vh;width:100%;font-size:2.2rem}
@@ -37,7 +32,6 @@ input{font:inherit;font-size:1.2rem;border:3px solid var(--ink);border-radius:14
 <body>
 <div id="app"></div>
 <script>
-const socket = io();
 const T = [["🐰","토끼팀","#ff8fab"],["🐻","곰팀","#ffb347"],["🐸","개구리팀","#6fcf4f"],["🐧","펭귄팀","#5bb8f5"]];
 const G = {
   tap: {n:"연타왕", e:"👆", d:10, h:"빠르게 연타하세요!"},
@@ -47,146 +41,161 @@ const G = {
 const app = document.getElementById("app");
 const draw = html => { app.innerHTML = html; };
 const urlParams = new URLSearchParams(location.search);
-const paramRoom = urlParams.get("room");
+const hostId = urlParams.get("host");
 
-let isHost = false, currentRoom = null, myTeam = null, myName = "", myScore = 0;
+let peer = null, conn = null, connections = [];
+let isHost = false, players = {}, scores = {}, myInfo = {name:"", team:null};
 
-if(paramRoom) {
-  renderJoinScreen(paramRoom);
+if(hostId) {
+  // 참가자 모드
+  initClient(hostId);
 } else {
+  // 메인 홈 모드
   renderHome();
 }
-
-socket.on('ROOM_CREATED', (code) => {
-  currentRoom = { roomCode: code, players: {}, scores: {}, state: 'lobby' };
-  isHost = true;
-  renderHostLobby();
-});
-
-socket.on('UPDATE_ROOM', (room) => {
-  currentRoom = room;
-  if(isHost) {
-    if(room.state === 'lobby') renderHostLobby();
-    else if(room.state === 'count') draw(`<h1>${G[room.game].e} ${G[room.game].n}</h1><div class="huge">${room.count}</div>`);
-    else if(room.state === 'play') draw(`<h1>${G[room.game].e} ${G[room.game].n}</h1><div class="card"><h2>남은 시간: ${room.left}초</h2>${renderBars(room.game, room)}</div>`);
-    else if(room.state === 'result') {
-      draw(`<h1>🎉 결과</h1><div class="card">${renderBars(room.game, room)}</div><button class="btn ok big" onclick="socket.emit('START_GAME', {roomCode:'${room.roomCode}', gameKey:'${room.game}', duration:10})">다시 하기</button>`);
-    }
-  } else {
-    if(room.state === 'lobby') renderPlayerWait();
-    else if(room.state === 'count') draw(`<h1>${G[room.game].e} ${G[room.game].n}</h1><div class="huge">🔥</div><h2>준비!</h2>`);
-    else if(room.state === 'play') runGame(room.game);
-    else if(room.state === 'result') draw(`<div class="huge">🎉</div><h1>종료!</h1>`);
-  }
-});
-
-socket.on('UPDATE_SCORES', (scores) => {
-  if(currentRoom && isHost) {
-    currentRoom.scores = scores;
-    if(currentRoom.state === 'play') {
-      draw(`<h1>${G[currentRoom.game].e} ${G[currentRoom.game].n}</h1><div class="card"><h2>남은 시간: ${currentRoom.left}초</h2>${renderBars(currentRoom.game, currentRoom)}</div>`);
-    }
-  }
-});
-
-socket.on('JOINED_OK', () => { renderPlayerWait(); });
-socket.on('ERROR', (msg) => { alert(msg); renderHome(); });
 
 function renderHome() {
   draw(`
     <h1>🎈 우리집 팀 오락실</h1>
+    <p style="color:#8a7a9b">서버 없는 깃허브 전용 P2P 멀티</p>
     <div class="card">
-      <h2>🎤 진행자 (TV)</h2>
-      <button class="btn big ok" onclick="socket.emit('CREATE_ROOM')">방 만들기</button>
+      <h2>🎤 진행자 (TV/PC)</h2>
+      <button class="btn big ok" onclick="startHosting()">방 만들기 (TV 모드)</button>
     </div>
     <div class="card">
       <h2>📱 참가자 (폰)</h2>
-      <input type="text" id="inp-code" placeholder="방 코드 4자리" maxlength="4"><br><br>
-      <button class="btn big alt" onclick="manualJoin()">입장하기</button>
+      <p style="font-size:0.9rem">TV 화면의 QR코드를 스캔하거나 링크로 접속하세요!</p>
     </div>
   `);
 }
 
-function manualJoin() {
-  const code = document.getElementById("inp-code").value.trim();
-  if(code.length !== 4) return alert("4자리 코드를 입력하세요.");
-  renderJoinScreen(code);
+function startHosting() {
+  isHost = true;
+  // 무작위 호스트 ID 생성 (4자리)
+  const myCode = Math.floor(1000 + Math.random() * 9000).toString();
+  peer = new Peer("arcade-" + myCode);
+
+  peer.on('open', (id) => {
+    renderHostLobby(myCode);
+  });
+
+  peer.on('connection', (c) => {
+    connections.push(c);
+    c.on('data', (data) => {
+      if(data.type === 'JOIN') {
+        players[c.peer] = { name: data.name, team: data.team };
+        scores[c.peer] = 0;
+        broadcast({ type: 'ROOM_STATE', players, scores, state: 'lobby' });
+        renderHostLobby(myCode);
+      } else if(data.type === 'SCORE') {
+        scores[c.peer] = data.score;
+        broadcast({ type: 'SCORES_UPDATE', scores });
+        renderHostLobby(myCode);
+      }
+    });
+  });
 }
 
-function renderJoinScreen(code) {
-  draw(`
-    <h1>📱 참가자 등록</h1>
-    <div class="badge">방 코드: ${code}</div>
-    <div class="card">
-      <input type="text" id="inp-name" placeholder="닉네임" maxlength="8"><br><br>
-      <h2>팀 선택</h2>
-      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}" onclick="selectTeam(${i}, this)"><b>${t[0]} ${t[1]}</b></div>`).join("")}</div><br>
-      <button class="btn ok big" onclick="submitJoin('${code}')">입장하기</button>
-    </div>
-  `);
+function broadcast(data) {
+  connections.forEach(c => c.send(data));
 }
 
-function selectTeam(idx, el) {
-  myTeam = idx;
-  document.querySelectorAll(".pick").forEach(x => x.classList.remove("on"));
-  el.classList.add("on");
-}
-
-function submitJoin(code) {
-  myName = document.getElementById("inp-name").value.trim();
-  if(!myName) return alert("닉네임을 입력하세요.");
-  if(myTeam === null) return alert("팀을 선택하세요.");
-  socket.emit('JOIN_ROOM', { roomCode: code, name: myName, team: myTeam });
-}
-
-function renderPlayerWait() {
-  const t = T[myTeam];
-  draw(`<div class="huge">${t[0]}</div><h1>${myName} (${t[1]})</h1><div class="card"><p>대기 중...</p></div>`);
-}
-
-function renderHostLobby() {
-  const pCount = Object.keys(currentRoom.players || {}).length;
+function renderHostLobby(code) {
+  const pCount = Object.keys(players).length;
   const roster = T.map((t, idx) => {
-    const m = Object.values(currentRoom.players || {}).filter(p => p.team === idx);
+    const m = Object.values(players).filter(p => p.team === idx);
     const list = m.map(x => `<span class="member-tag">🟢 ${x.name}</span>`).join("") || `<span style="font-size:0.8rem;color:#8a7a9b">대기 중</span>`;
     return `<div class="team" style="background:${t[2]}"><b>${t[0]} ${t[1]} (${m.length})</b><div class="plist">${list}</div></div>`;
   }).join("");
 
-  const joinUrl = `${location.origin}${location.pathname}?room=${currentRoom.roomCode}`;
+  const joinUrl = `${location.origin}${location.pathname}?host=arcade-${code}`;
   draw(`
-    <h1>🎈 대기실</h1>
-    <div class="badge">방 코드: ${currentRoom.roomCode} | 접속: ${pCount}명</div>
-    <div class="card"><div id="qr-box"></div><p style="font-size:0.8rem;word-break:break-all;">${joinUrl}</p></div>
+    <h1>🎈 대기실 (방 코드: ${code})</h1>
+    <div class="card"><div id="qr-box"></div><p style="font-size:0.75rem;word-break:break-all;">${joinUrl}</p></div>
     <div class="grid">${roster}</div>
     <h2 style="margin:10px 0;">🎮 게임 선택</h2>
-    <div class="grid">${Object.entries(G).map(([k, g]) => `<button class="btn" onclick="socket.emit('START_GAME', {roomCode:'${currentRoom.roomCode}', gameKey:'${k}', duration:${g.d}})">${g.e} ${g.n}</button>`).join("")}</div>
+    <div class="grid">${Object.entries(G).map(([k, g]) => `<button class="btn" onclick="hostStartGame('${k}', ${g.d})">${g.e} ${g.n}</button>`).join("")}</div>
   `);
   const qrBox = document.getElementById("qr-box");
   if(qrBox){ qrBox.innerHTML = ""; new QRCode(qrBox, { text: joinUrl, width: 120, height: 120 }); }
 }
 
-function renderBars(gKey, room) {
-  const r = T.map((_, i) => {
-    const m = Object.entries(room.players || {}).filter(([_, p]) => p.team === i);
-    if(!m.length) return [i, null];
-    const sum = m.reduce((acc, [pId]) => acc + (room.scores[pId] ?? (gKey === "stop" ? 10 : 0)), 0);
-    return [i, sum / m.length];
-  }).filter(x => x[1] !== null).sort((a,b) => gKey === "stop" ? a[1]-b[1] : b[1]-a[1]);
-
-  if(!r.length) return `<p>참가팀 대기 중...</p>`;
-  const maxV = Math.max(1, ...r.map(x => gKey === "stop" ? 10 : x[1]));
-  return r.map((x, idx) => {
-    const t = T[x[0]];
-    const w = gKey === "stop" ? Math.max(8, 100 - x[1]*10) : Math.max(8, (x[1]/maxV)*100);
-    const txt = gKey === "stop" ? x[1].toFixed(2) + "초" : Math.round(x[1]) + "점";
-    return `<div class="bar"><span class="nm">${idx===0?"👑 ":""}${t[0]}</span><div class="tr"><div class="fl" style="width:${w}%;background:${t[2]}"></div></div><span class="v">${txt}</span></div>`;
-  }).join("");
+function hostStartGame(gKey, duration) {
+  broadcast({ type: 'START_GAME', game: gKey, duration });
+  runHostGameView(gKey, duration);
 }
 
-function runGame(gKey) {
-  myScore = 0;
+function runHostGameView(gKey, duration) {
+  let left = duration;
+  draw(`<h1>${G[gKey].e} ${G[gKey].n}</h1><div class="card"><h2>남은 시간: <span id="t-left">${left}</span>초</h2><div id="board"></div></div>`);
+  
+  let timer = setInterval(() => {
+    left--;
+    const el = document.getElementById("t-left");
+    if(el) el.textContent = left;
+    if(left <= 0) {
+      clearInterval(timer);
+      broadcast({ type: 'GAME_OVER' });
+      draw(`<h1>🎉 경기 종료!</h1><button class="btn ok big" onclick="location.reload()">처음으로</button>`);
+    }
+  }, 1000);
+}
+
+// --- 참가자(클라이언트) 로직 ---
+function initClient(hostPeerId) {
+  peer = new Peer();
+  peer.on('open', () => {
+    renderJoinScreen(hostPeerId);
+  });
+}
+
+function renderJoinScreen(hostPeerId) {
+  draw(`
+    <h1>📱 참가자 등록</h1>
+    <div class="card">
+      <input type="text" id="inp-name" placeholder="닉네임" maxlength="8"><br><br>
+      <h2>팀 선택</h2>
+      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}" onclick="selectTeam(${i}, this)"><b>${t[0]} ${t[1]}</b></div>`).join("")}</div><br>
+      <button class="btn ok big" onclick="connectToHost('${hostPeerId}')">입장하기</button>
+    </div>
+  `);
+}
+
+function selectTeam(idx, el) {
+  myInfo.team = idx;
+  document.querySelectorAll(".pick").forEach(x => x.classList.remove("on"));
+  el.classList.add("on");
+}
+
+function connectToHost(hostPeerId) {
+  myInfo.name = document.getElementById("inp-name").value.trim();
+  if(!myInfo.name) return alert("닉네임을 입력하세요.");
+  if(myInfo.team === null) return alert("팀을 선택하세요.");
+
+  conn = peer.connect(hostPeerId);
+  conn.on('open', () => {
+    conn.send({ type: 'JOIN', name: myInfo.name, team: myInfo.team });
+    renderPlayerWait();
+  });
+
+  conn.on('data', (data) => {
+    if(data.type === 'START_GAME') {
+      runClientGame(data.game);
+    } else if(data.type === 'GAME_OVER') {
+      draw(`<div class="huge">🎉</div><h1>경기 종료!</h1><p>TV 화면을 확인하세요!</p>`);
+    }
+  });
+}
+
+function renderPlayerWait() {
+  const t = T[myInfo.team];
+  draw(`<div class="huge">${t[0]}</div><h1>${myInfo.name} (${t[1]})</h1><div class="card"><p>연결 완료! 대기 중...</p></div>`);
+}
+
+function runClientGame(gKey) {
+  let score = 0;
   if(gKey === 'tap') {
-    draw(`<h2>👆 연타왕</h2><button class="btn pad" onclick="myScore++; document.getElementById('cnt').textContent=myScore; socket.emit('SEND_SCORE', myScore);">터치!! <div id="cnt" style="font-size:3rem">0</div></button>`);
+    draw(`<h2>👆 연타왕</h2><button class="btn pad" onclick="score++; document.getElementById('cnt').textContent=score; conn.send({type:'SCORE', score});">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
   } else if(gKey === 'stop') {
     let t0 = performance.now(), stopped = false;
     draw(`<h2>⏱️ 10초 멈춰라</h2><div class="huge" id="clock">0.00</div><button class="btn ok big pad" id="b-stop">STOP!</button>`);
@@ -199,7 +208,7 @@ function runGame(gKey) {
       stopped = true;
       clearInterval(timer);
       let diff = Math.abs(((performance.now() - t0)/1000) - 10);
-      socket.emit('SEND_SCORE', diff);
+      conn.send({ type: 'SCORE', score: diff });
       draw(`<div class="huge">🎯</div><h1>${diff.toFixed(2)}초 차이!</h1>`);
     };
   }
