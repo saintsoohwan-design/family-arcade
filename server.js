@@ -22,7 +22,7 @@ io.on('connection', (socket) => {
 
   socket.on('JOIN_ROOM', ({ roomCode, name, team }) => {
     const room = rooms[roomCode];
-    if (!room) return socket.emit('ERROR', '방을 찾을 수 없습니다. 코드를 확인해주세요!');
+    if (!room) return socket.emit('ERROR', '방을 찾을 수 없습니다.');
     
     room.players[socket.id] = { name, team };
     room.scores[socket.id] = 0;
@@ -36,6 +36,7 @@ io.on('connection', (socket) => {
   socket.on('START_GAME', ({ roomCode, gameKey, duration }) => {
     const room = rooms[roomCode];
     if (!room) return;
+    
     room.game = gameKey;
     room.scores = {};
     room.state = 'count';
