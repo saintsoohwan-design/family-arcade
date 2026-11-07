@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>우리집 팀 오락실 (P2P 멀티)</title>
+<title>우리집 팀 오락실 (10종)</title>
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -12,21 +12,21 @@
 body{background:var(--bg);color:var(--ink);font-family:"Jua",sans-serif;text-align:center;margin:0;padding:15px;touch-action:manipulation}
 #app{max-width:700px;margin:0 auto;padding:10px}
 .card{background:var(--card);border:4px solid var(--ink);border-radius:22px;padding:16px;margin:12px 0;box-shadow:0 6px 0 var(--ink)}
-.btn{font:inherit;font-size:1.2rem;border:4px solid var(--ink);background:var(--pop);color:#fff;border-radius:18px;padding:12px 20px;cursor:pointer;margin:6px;box-shadow:0 4px 0 var(--ink)}
+.btn{font:inherit;font-size:1.1rem;border:4px solid var(--ink);background:var(--pop);color:#fff;border-radius:18px;padding:10px 16px;cursor:pointer;margin:4px;box-shadow:0 4px 0 var(--ink)}
 .btn:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
-.btn.ok{background:var(--ok)}.btn.alt{background:var(--alt)}.btn.big{font-size:1.5rem;padding:16px;width:100%;margin:8px 0}
+.btn.ok{background:var(--ok)}.btn.alt{background:var(--alt)}.btn.big{font-size:1.4rem;padding:14px;width:100%;margin:6px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .team{border-radius:18px;padding:10px;border:3px solid var(--ink);color:#fff;text-align:left;font-size:1rem}
 .team b{display:block;font-size:1.3rem;text-align:center}
 .team .plist{margin-top:6px;font-size:0.85rem;background:rgba(0,0,0,0.15);border-radius:10px;padding:4px;min-height:36px}
 .member-tag{display:inline-block;background:rgba(255,255,255,0.3);border-radius:6px;padding:2px 5px;margin:2px}
 .pick{opacity:0.5;cursor:pointer}.pick.on{opacity:1;transform:scale(1.03);border-width:4px}
-.bar{display:flex;align-items:center;gap:8px;margin:8px 0;text-align:left}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0;text-align:left}
 .bar .nm{width:110px;flex:none}
-.bar .tr{flex:1;background:rgba(0,0,0,0.08);border-radius:99px;height:26px;overflow:hidden;border:2px solid var(--ink)}
+.bar .tr{flex:1;background:rgba(0,0,0,0.08);border-radius:99px;height:24px;overflow:hidden;border:2px solid var(--ink)}
 .bar .fl{height:100%;border-radius:99px}
 .bar .v{width:70px;text-align:right;font-weight:700}
-.huge{font-size:4.5rem;margin:10px 0}
+.huge{font-size:4rem;margin:10px 0}
 input{font:inherit;font-size:1.2rem;border:3px solid var(--ink);border-radius:14px;padding:8px;width:80%;text-align:center;background:var(--card);color:var(--ink)}
 .pad{height:40vh;width:100%;font-size:2.2rem}
 .badge{background:#4a3b5c;color:#fff;border-radius:10px;padding:4px 10px;font-size:1rem;display:inline-block}
@@ -40,7 +40,15 @@ input{font:inherit;font-size:1.2rem;border:3px solid var(--ink);border-radius:14
 const T = [["🐰","토끼팀","#ff8fab"],["🐻","곰팀","#ffb347"],["🐸","개구리팀","#6fcf4f"],["🐧","펭귄팀","#5bb8f5"]];
 const G = {
   tap: {n:"연타왕", e:"👆", d:10, h:"빠르게 연타하세요!"},
-  stop:{n:"10초 멈춰라", e:"⏱️", d:14, h:"정확히 10초에 STOP!"}
+  stop:{n:"10초 멈춰라", e:"⏱️", d:10, h:"정확히 10초에 STOP!"},
+  run: {n:"번갈아 달리기", e:"🏃", d:10, h:"좌우 발판을 번갈아 터치!"},
+  bal: {n:"풍선 터뜨리기", e:"🎈", d:10, h:"연타해서 풍선을 불어라!"},
+  tar: {n:"정중앙 타격", e:"🎯", d:10, h:"타이밍에 맞춰 터치!"},
+  rev: {n:"좌우반전 터치", e:"🔄", d:10, h:"지시에 맞춰 누르기!"},
+  spd: {n:"빛의 속도 반응", e:"⚡", d:10, h:"신호가 오면 즉시 터치!"},
+  num: {n:"숫자 순서대로", e:"🔢", d:10, h:"1부터 5까지 순서대로!"},
+  crd: {n:"행운의 동전", e:"🍀", d:10, h:"앞/뒤 맞추기 연타!"},
+  rsp: {n:"가위바위보 연타", e:"🪨", d:10, h:"이기는 손을 빠르게 연타!"}
 };
 
 const app = document.getElementById("app");
@@ -60,7 +68,7 @@ if(hostId) {
 function renderHome() {
   draw(`
     <h1>🎈 우리집 팀 오락실</h1>
-    <p style="color:#8a7a9b">서버 없는 깃허브 전용 P2P 멀티</p>
+    <p style="color:#8a7a9b">미니게임 10종 실시간 멀티</p>
     <div class="card">
       <h2>🎤 진행자 (TV/PC)</h2>
       <button class="btn big ok" onclick="startHosting()">방 만들기 (TV 모드)</button>
@@ -115,7 +123,7 @@ function renderHostLobby(code) {
     <h1>🎈 대기실 (방 코드: ${code})</h1>
     <div class="card"><div id="qr-box"></div><p style="font-size:0.75rem;word-break:break-all;">${joinUrl}</p></div>
     <div class="grid">${roster}</div>
-    <h2 style="margin:10px 0;">🎮 게임 선택</h2>
+    <h2 style="margin:10px 0;">🎮 게임 선택 (10종)</h2>
     <div class="grid">${Object.entries(G).map(([k, g]) => `<button class="btn" onclick="hostStartGame('${k}', ${g.d})">${g.e} ${g.n}</button>`).join("")}</div>
   `);
   const qrBox = document.getElementById("qr-box");
@@ -128,7 +136,7 @@ function hostStartGame(gKey, duration) {
   scores = {};
   Object.keys(players).forEach(pId => scores[pId] = 0);
   broadcast({ type: 'START_GAME', game: gKey, duration });
-  runHostGameView(gKey, duration);
+  runHostGameView(gKey, duration, code => renderHostLobby(code));
 }
 
 function runHostGameView(gKey, duration) {
@@ -143,7 +151,7 @@ function runHostGameView(gKey, duration) {
       clearInterval(timer);
       currentHostGame = null;
       broadcast({ type: 'GAME_OVER' });
-      draw(`<h1>🎉 경기 결과</h1><div class="card">${renderBars(gKey)}</div><button class="btn ok big" onclick="location.reload()">처음으로</button>`);
+      draw(`<h1>🎉 경기 결과</h1><div class="card">${renderBars(gKey)}</div><button class="btn ok big" onclick="peer ? renderHostLobby(peer.id.replace('arcade-','')) : location.reload()">대기실로 돌아가기 ▶</button>`);
     }
   }, 1000);
 }
@@ -174,9 +182,7 @@ function renderBars(gKey) {
 // --- 참가자(클라이언트) 로직 ---
 function initClient(hostPeerId) {
   peer = new Peer();
-  peer.on('open', () => {
-    renderJoinScreen(hostPeerId);
-  });
+  peer.on('open', () => { renderJoinScreen(hostPeerId); });
 }
 
 function renderJoinScreen(hostPeerId) {
@@ -212,47 +218,25 @@ function connectToHost(hostPeerId) {
     if(data.type === 'START_GAME') {
       runClientGame(data.game);
     } else if(data.type === 'GAME_OVER') {
-      draw(`<div class="huge">🎉</div><h1>경기 종료!</h1><p>TV 화면을 확인하세요!</p>`);
+      renderPlayerWait();
     }
   });
 }
 
 function renderPlayerWait() {
   const t = T[myInfo.team];
-  draw(`<div class="huge">${t[0]}</div><h1>${myInfo.name} (${t[1]})</h1><div class="card"><p>연결 완료! 대기 중...</p></div>`);
+  draw(`<div class="huge">${t[0]}</div><h1>${myInfo.name} (${t[1]})</h1><div class="card"><p>게임 대기 중입니다! TV 화면을 보세요.</p></div>`);
 }
 
 function runClientGame(gKey) {
   let score = 0;
-  if(gKey === 'tap') {
-    draw(`<h2>👆 연타왕</h2><button class="btn pad" id="b-tap">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
-    document.getElementById("b-tap").onpointerdown = (e) => {
-      e.preventDefault();
-      score++;
-      document.getElementById("cnt").textContent = score;
-      if(conn && conn.open) {
-        conn.send({ type: 'SCORE', score });
-      }
-    };
-  } else if(gKey === 'stop') {
-    let t0 = performance.now(), stopped = false;
-    draw(`<h2>⏱️ 10초 멈춰라</h2><div class="huge" id="clock">0.00</div><button class="btn ok big pad" id="b-stop">STOP!</button>`);
-    let timer = setInterval(() => {
-      let el = (performance.now() - t0)/1000;
-      if(!stopped) document.getElementById("clock").textContent = el < 3 ? el.toFixed(2) : "??.??";
-    }, 50);
-    document.getElementById("b-stop").onpointerdown = (e) => {
-      e.preventDefault();
-      if(stopped) return;
-      stopped = true;
-      clearInterval(timer);
-      let diff = Math.abs(((performance.now() - t0)/1000) - 10);
-      if(conn && conn.open) {
-        conn.send({ type: 'SCORE', score: diff });
-      }
-      draw(`<div class="huge">🎯</div><h1>${diff.toFixed(2)}초 차이!</h1>`);
-    };
-  }
+  draw(`<h2>${G[gKey].e} ${G[gKey].n}</h2><button class="btn pad" id="b-act">터치!! <div id="cnt" style="font-size:3rem">0</div></button>`);
+  document.getElementById("b-act").onpointerdown = (e) => {
+    e.preventDefault();
+    score++;
+    document.getElementById("cnt").textContent = score;
+    if(conn && conn.open) conn.send({ type: 'SCORE', score });
+  };
 }
 </script>
 </body>
