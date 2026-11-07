@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>우리집 팀 오락실</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Jua 폰트 -->
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <!-- QRCode 생성 라이브러리 CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { jua: ['Jua', 'sans-serif'] },
+          colors: {
+            bgCustom: '#fff4e0',
+            cardCustom: '#ffffff',
+            inkCustom: '#4a3b5c',
+            subCustom: '#8a7a9b',
+            lineCustom: '#ffcf99',
+            popCustom: '#ff8fab',
+            rabbit: '#ff8fab',
+            bear: '#ffb347',
+            frog: '#6fcf4f',
+            penguin: '#5bb8f5'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #fff4e0;
+      background-image: radial-gradient(#ffcf99 2px, transparent 2px);
+      background-size: 26px 26px;
+      font-family: 'Jua', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .card-shadow { box-shadow: 0 6px 0 #ffcf99; }
+    .btn-pop { box-shadow: 0 6px 0 #4a3b5c; transition: all 0.05s ease; }
+    .btn-pop:active { transform: translateY(4px); box-shadow: 0 2px 0 #4a3b5c; }
+    .huge-pop { animation: pop 0.6s infinite alternate ease-in-out; }
+    @keyframes pop { to { transform: scale(1.12) rotate(3deg); } }
+  </style>
+</head>
+<body class="text-inkCustom min-h-screen flex flex-col justify-between">
+
+  <!-- ================================================================= -->
+  <!-- [설정] Firebase Realtime Database 설정 (필요시 키 입력 가능)    -->
+  <!-- ================================================================= -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+  </script>
+
+  <!-- 메인 애플리케이션 콘테이너 -->
+  <div id="app" class="max-w-md mx-auto w-full p-4 flex-1 flex flex-col justify-center"></div>
+
+  <script>
+    /* -----------------------------------------------------------------
+       팀 정보 정의 (4개 팀)
+    ----------------------------------------------------------------- */
+    const TEAMS = [
+      { id: 0, name: "토끼팀", emoji: "🐰", color: "#ff8fab", bgClass: "bg-rabbit" },
+      { id: 1, name: "곰팀", emoji: "🐻", color: "#ffb347", bgClass: "bg-bear" },
+      { id: 2, name: "개구리팀", emoji: "🐸", color: "#6fcf4f", bgClass: "bg-frog" },
+      { id: 3, name: "펭귄팀", emoji: "🐧", color: "#5bb8f5", bgClass: "bg-penguin" }
+    ];
+
+    /* -----------------------------------------------------------------
+       미니게임 25종 목록 정의
+    ----------------------------------------------------------------- */
+    const GAMES = {
+      tap: { name: "연타왕", emoji: "👆", duration: 10, desc: "10초 동안 화면을 빛의 속도로 두드리세요!" },
+      beat: { name: "박자왕", emoji: "🎵", duration: 12, desc: "음악에 맞춰 내려오는 과녁을 딱!" },
+      shake: { name: "흔들흔들", emoji: "📱", duration: 10, desc: "스마트폰을 신나게 흔들어주세요!" },
+      rub: { name: "문질문질", emoji: "↔️", duration: 10, desc: "화면을 좌우로 비벼비벼! 문지르기!" },
+      mole: { name: "두더지", emoji: "🐹", duration: 12, desc: "튀어나오는 두더지를 잽싸게 잡으세요!" },
+      rps: { name: "가위바위보", emoji: "✌️", duration: 12, desc: "화면에 나온 손과 지시에 맞게 제출!" },
+      run: { name: "100m 달리기를", emoji: "🏃", duration: 10, desc: "왼발/오른발 버튼을 번갈아 눌러 골인!" },
+      piano: { name: "피아노", emoji: "🎹", duration: 12, desc: "내려오는 건반을 순서대로 터치!" },
+      stop: { name: "10초를 멈춰라", emoji: "⏱️", duration: 14, desc: "숨은 시계가 정확히 10.00초일 때 STOP!" },
+      lemon: { name: "레몬짜기", emoji: "🍋", duration: 10, desc: "레몬즙을 딱 맞는 눈금 영역에 맞추세요!" },
+      catch: { name: "순간포착", emoji: "📏", duration: 10, desc: "자가 떨어지는 순간! 잽싸게 잡으세요!" },
+      tower: { name: "탑 쌓기", emoji: "🏗️", duration: 12, desc: "움직이는 블록을 딱 맞춰 높이 쌓으세요!" },
+      line: { name: "줄 지우기", emoji: "🧩", duration: 12, desc: "떨어지는 블록을 채워 가로줄을 지우세요!" },
+      bomb: { name: "폭탄 해체", emoji: "💣", duration: 10, desc: "시간 안 맞는 색 전선을 잘라 폭탄 해체!" },
+      dodge: { name: "장애물 피하기", emoji: "🚀", duration: 12, desc: "쏟아지는 운석을 피해서 살아남기!" },
+      math: { name: "홀짝 계산기", emoji: "🎲", duration: 12, desc: "계산 결과가 홀수? 짝수? 잽싸게 맞추기!" },
+      lr: { name: "왼쪽 오른쪽", emoji: "↔️", duration: 12, desc: "이건 왼쪽, 저건 오른쪽! 규칙대로 분류!" },
+      balloon: { name: "색깔 풍선", emoji: "🎈", duration: 12, desc: "글자에 속지 마세요! 풍선의 '색깔' 선택!" },
+      gugu: { name: "구구단 릴레이", emoji: "📐", duration: 12, desc: "구구단을 맞춰 오늘의 단을 완료!" },
+      num: { name: "숫자 사냥", emoji: "🔟", duration: 12, desc: "1부터 16까지 순서대로 터치!" },
+      memory: { name: "반짝 기억", emoji: "🧠", duration: 12, desc: "반짝인 칸을 기억해서 모두 누르세요!" },
+      safe: { name: "금고 열기", emoji: "🔐", duration: 12, desc: "UP/DOWN 힌트로 비밀번호 맞추기!" },
+      color: { name: "다른 색 찾기", emoji: "🎨", duration: 12, desc: "혼자 다른 색 타일을 잽싸게 찾으세요!" },
+      chosung: { name: "초성 퀴즈", emoji: "📝", duration: 12, desc: "제시된 초성에 어울리는 단어 선택!" },
+      quiz: { name: "상식 퀴즈", emoji: "💡", duration: 12, desc: "알쏭달쏭 재미있는 상식 O/X 퀴즈!" }
+    };
+
+    /* -----------------------------------------------------------------
+       실시간 신호 버스 (BroadcastChannel + LocalStorage fallback)
+    ----------------------------------------------------------------- */
+    const channel = new BroadcastChannel("family_arcade_bus");
+    let roomPeer = null;
+
+    function sendSignal(type, payload) {
+      const data = { type, payload, timestamp: Date.now() };
+      channel.postMessage(data);
+      localStorage.setItem("arcade_last_signal", JSON.stringify(data));
+      if (roomPeer) roomPeer.emit(type, payload);
+    }
+
+    function listenSignal(handler) {
+      channel.onmessage = (e) => handler(e.data);
+      window.addEventListener("storage", (e) => {
+        if (e.key === "arcade_last_signal" && e.newValue) {
+          try { handler(JSON.parse(e.newValue)); } catch(err) {}
+        }
+      });
+      if (roomPeer) {
+        roomPeer.on("host_state", data => handler({ type: "host_state", payload: data }));
+        roomPeer.on("score", data => handler({ type: "score", payload: data }));
+        roomPeer.on("join_player", data => handler({ type: "join_player", payload: data }));
+      }
+    }
+
+    /* -----------------------------------------------------------------
+       앱 전역 상태 관리
+    ----------------------------------------------------------------- */
+    const appEl = document.getElementById("app");
+    let roomCode = "";
+    let userRole = null; // 'host' | 'player'
+
+    // 진행자 상태 데이터
+    let hostGameState = {
+      phase: "lobby",
+      currentGame: null,
+      countdown: 3,
+      timeLeft: 0,
+      scores: {},
+      players: [],
+      cumulativeScores: [0, 0, 0, 0],
+      playedCount: 0
+    };
+
+    // 참가자 상태 데이터
+    let myPlayerInfo = { name: "", team: null, roomCode: "" };
+    let localPlayerScore = 0;
+    let localTimer = null;
+    let lastActionSide = null;
+
+    // 미니게임 개별 상태
+    let gameStateMole = Array(9).fill(false);
+    let gameStateMath = { a: 0, b: 0 };
+    let gameStateLemon = { val: 0 };
+    let gameStatePiano = { notes: [0, 1, 2, 3] };
+
+    /* -----------------------------------------------------------------
+       시작 화면 (QR코드 기반 접속 처리 포함)
+    ----------------------------------------------------------------- */
+    function renderHome() {
+      // URL 파라미터에 room 번호가 있으면 자동으로 참가자 등록 화면으로 이동
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRoom = urlParams.get('room');
+
+      if (urlRoom) {
+        initPlayerWithCode(urlRoom);
+        return;
+      }
+
+      appEl.innerHTML = `
+        <div class="text-center">
+          <h1 class="text-4xl font-black mb-2 text-inkCustom">🎈 우리집 팀 오락실</h1>
+          <p class="text-subCustom font-bold mb-6">가족 모임 팀 대항 미니게임 25종</p>
+          
+          <div class="bg-cardCustom border-4 border-lineCustom rounded-3xl p-6 mb-4 card-shadow">
+            <h2 class="text-2xl font-bold mb-1 text-inkCustom">🎤 큰 화면 진행자</h2>
+            <p class="text-sm text-subCustom mb-4">TV나 큰 화면에서 '방 만들기'를 눌러주세요</p>
+            <button id="btn-host" class="w-full py-4 bg-popCustom border-4 border-inkCustom rounded-2xl text-white text-2xl font-black btn-pop">
+              방 만들기 (QR 생성)
+            </button>
+          </div>
+
+          <div id="status-conn" class="text-xs text-subCustom font-bold mt-4">
+            ✅ 실시간 동기화 준비 완료!
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btn-host').onclick = initHost;
+
+      (async () => {
+        try {
+          if (window.claude) roomPeer = await claude.use("room");
+        } catch(e) {}
+      })();
+    }
+
+    /* -----------------------------------------------------------------
+       [진행자 Logic & UI]
+    ----------------------------------------------------------------- */
+    function initHost() {
+      userRole = "host";
+      roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+      listenSignal((msg) => {
+        if (!msg || !msg.payload) return;
+        if (msg.type === "join_player" && msg.payload.roomCode === roomCode) {
+          const p = msg.payload;
+          if (!hostGameState.players.some(x => x.name === p.name)) {
+            hostGameState.players.push(p);
+            syncHostState();
+            renderHostUI();
+          }
+        }
+        if (msg.type === "score" && msg.payload.roomCode === roomCode) {
+          hostGameState.scores[msg.payload.name] = msg.payload.score;
+          if (hostGameState.phase === "play") renderHostUI();
+        }
+      });
+
+      setInterval(syncHostState, 300);
+      renderHostUI();
+    }
+
+    function syncHostState() {
+      if (userRole !== "host") return;
+      sendSignal("host_state", {
+        roomCode: roomCode,
+        phase: hostGameState.phase,
+        currentGame: hostGameState.currentGame,
+        countdown: hostGameState.countdown,
+        timeLeft: hostGameState.timeLeft,
+        duration: hostGameState.currentGame ? GAMES[hostGameState.currentGame].duration : 0
+      });
+    }
+
+    function getTeamMembers(teamId) {
+      return hostGameState.players.filter(p => p.team === teamId);
+    }
+
+    function calculateTeamAverage(gameKey, teamId) {
+      const members = getTeamMembers(teamId);
+      if (members.length === 0) return null;
+
+      const sum = members.reduce((acc, p) => {
+        const userScore = hostGameState.scores[p.name] ?? (gameKey === "stop" ? 10 : 0);
+        return acc + userScore;
+      }, 0);
+
+      return sum / members.length;
+    }
+
+    function getRankedTeams(gameKey) {
+      return TEAMS.map(team => [team.id, calculateTeamAverage(gameKey, team.id)])
+        .filter(x => x[1] !== null)
+        .sort((a, b) => gameKey === "stop" ? a[1] - b[1] : b[1] - a[1]);
+    }
+
+    function startMiniGame(gameKey) {
+      hostGameState.currentGame = gameKey;
+      hostGameState.scores = {};
+      hostGameState.phase = "count";
+      hostGameState.countdown = 3;
+      syncHostState();
+      renderHostUI();
+
+      let timer = setInterval(() => {
+        if (hostGameState.phase === "count") {
+          hostGameState.countdown--;
+          syncHostState();
+          if (hostGameState.countdown <= 0) {
+            hostGameState.phase = "play";
+            hostGameState.timeLeft = GAMES[gameKey].duration;
+            syncHostState();
+          }
+        } else if (hostGameState.phase === "play") {
+          hostGameState.timeLeft--;
+          syncHostState();
+          if (hostGameState.timeLeft < 0) {
+            clearInterval(timer);
+            finishMiniGame();
+            return;
+          }
+        }
+        renderHostUI();
+      }, 1000);
+    }
+
+    function finishMiniGame() {
+      const ranked = getRankedTeams(hostGameState.currentGame);
+      ranked.forEach(([teamId], idx) => {
+        hostGameState.cumulativeScores[teamId] += (ranked.length - idx);
+      });
+      hostGameState.phase = "result";
+      hostGameState.playedCount++;
+      syncHostState();
+      renderHostUI();
+    }
+
+    function renderHostBars(gameKey) {
+      const ranked = getRankedTeams(gameKey);
+      if (ranked.length === 0) {
+        return `<p class="text-subCustom font-bold py-4">참가자가 QR코드를 스캔하여 입장하기를 기다리는 중입니다... 📱</p>`;
+      }
+
+      const maxVal = Math.max(1, ...ranked.map(x => gameKey === "stop" ? 10 : x[1]));
+      return ranked.map(([teamId, avgScore], idx) => {
+        const team = TEAMS[teamId];
+        const widthPct = gameKey === "stop" 
+          ? Math.max(8, 100 - (avgScore * 10)) 
+          : Math.max(8, (avgScore / maxVal) * 100);
+
+        const scoreDisplay = gameKey === "stop" 
+          ? avgScore.toFixed(2) + "초 오차" 
+          : Math.round(avgScore) + (gameKey === "run" ? "m" : "점");
+
+        return `
+          <div class="flex items-center gap-2 my-2 text-left">
+            <span class="w-24 font-bold text-sm truncate">${idx === 0 ? '👑 ' : ''}${team.emoji} ${team.name}</span>
+            <div class="flex-1 bg-black/10 rounded-full h-7 overflow-hidden border-2 border-inkCustom">
+              <div class="h-full rounded-full transition-all duration-300" style="width: ${widthPct}%; background-color: ${team.color}"></div>
+            </div>
+            <span class="w-20 text-right font-black text-sm">${scoreDisplay}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderHostUI() {
+      if (hostGameState.phase === "count") {
+        const game = GAMES[hostGameState.currentGame];
+        appEl.innerHTML = `
+          <div class="text-center py-10">
+            <h1 class="text-3xl font-black text-inkCustom mb-2">${game.emoji} ${game.name}</h1>
+            <p class="text-subCustom font-bold mb-6">${game.desc}</p>
+            <div class="huge-pop text-9xl font-black text-popCustom my-8">${hostGameState.countdown}</div>
+            <p class="text-lg font-bold text-inkCustom animate-pulse">스마트폰 조작 준비!</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (hostGameState.phase === "play") {
+        const game = GAMES[hostGameState.currentGame];
+        appEl.innerHTML = `
+          <div class="text-center">
+            <h1 class="text-3xl font-black text-inkCustom mb-2">${game.emoji} ${game.name}</h1>
+            <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-6 card-shadow my-4">
+              <h2 class="text-4xl font-black text-red-500 mb-4">⏳ ${Math.max(0, hostGameState.timeLeft)}초</h2>
+              ${renderHostBars(hostGameState.currentGame)}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (hostGameState.phase === "result") {
+        const game = GAMES[hostGameState.currentGame];
+        appEl.innerHTML = `
+          <div class="text-center">
+            <h1 class="text-3xl font-black text-inkCustom mb-2">🎉 ${game.name} 결과 발표</h1>
+            <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-4 mb-4 card-shadow">
+              ${renderHostBars(hostGameState.currentGame)}
+            </div>
+            <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-4 mb-6 card-shadow">
+              <h2 class="text-xl font-bold mb-3 text-inkCustom">🏆 누적 순위 점수</h2>
+              <div class="grid grid-cols-2 gap-2">
+                ${TEAMS.map((t, i) => `
+                  <div class="bg-bgCustom border-2 border-inkCustom rounded-xl p-2 font-bold flex justify-between">
+                    <span>${t.emoji} ${t.name}</span>
+                    <span class="text-popCustom">${hostGameState.cumulativeScores[i]}점</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btn-next-game" class="flex-1 py-4 bg-frog border-4 border-inkCustom rounded-2xl text-white text-xl font-black btn-pop">
+                다음 게임 선택 ▶
+              </button>
+              <button id="btn-final" class="py-4 px-6 bg-penguin border-4 border-inkCustom rounded-2xl text-white text-xl font-black btn-pop">
+                🏁 최종 우승
+              </button>
+            </div>
+          </div>
+        `;
+        document.getElementById('btn-next-game').onclick = () => { hostGameState.phase = "lobby"; renderHostUI(); };
+        document.getElementById('btn-final').onclick = renderHostFinalUI;
+        return;
+      }
+
+      // 진행자 기본 로비 화면 (QR 코드 및 25종 게임 셀렉터)
+      const rosterHtml = TEAMS.map((t, i) => {
+        const mems = getTeamMembers(i);
+        return `
+          <div class="${t.bgClass} border-3 border-inkCustom rounded-2xl p-2 text-white card-shadow">
+            <b class="text-xl block">${t.emoji} ${t.name}</b>
+            <span class="text-xs font-bold">${mems.map(p => p.name).join(', ') || '대기 중...'}</span>
+          </div>
+        `;
+      }).join('');
+
+      appEl.innerHTML = `
+        <div class="text-center">
+          <!-- 상단 헤더 & QR 접속 코드 -->
+          <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-4 mb-4 card-shadow flex items-center justify-between gap-4">
+            <div class="text-left flex-1">
+              <span class="bg-popCustom text-white px-3 py-1 rounded-xl font-black text-sm">📱 폰 카메라로 스캔!</span>
+              <h2 class="text-2xl font-black text-inkCustom mt-1">방 코드: <span class="text-popCustom">${roomCode}</span></h2>
+              <p class="text-xs text-subCustom font-bold mt-1">QR을 찍으면 별도 번호 입력 없이 바로 접속됩니다!</p>
+            </div>
+            <div id="qrcode-box" class="p-2 bg-white border-2 border-inkCustom rounded-2xl flex-none"></div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            ${rosterHtml}
+          </div>
+
+          <div class="bg-white border-4 border-inkCustom rounded-3xl p-4 card-shadow">
+            <h3 class="text-lg font-bold mb-2 text-inkCustom">🎮 미니게임 선택 (25종)</h3>
+            <div class="grid grid-cols-3 gap-2 max-h-[36vh] overflow-y-auto p-1">
+              ${Object.keys(GAMES).map(gKey => `
+                <button data-game="${gKey}" class="btn-select-game p-2 bg-bgCustom border-3 border-inkCustom rounded-xl text-inkCustom font-bold flex flex-col items-center btn-pop">
+                  <span class="text-2xl mb-1">${GAMES[gKey].emoji}</span>
+                  <span class="text-xs leading-tight">${GAMES[gKey].name}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+
+      // QR 코드 즉시 생성
+      const currentJoinUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+      setTimeout(() => {
+        const qrContainer = document.getElementById("qrcode-box");
+        if (qrContainer) {
+          qrContainer.innerHTML = "";
+          new QRCode(qrContainer, {
+            text: currentJoinUrl,
+            width: 84,
+            height: 84,
+            colorDark : "#4a3b5c",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+          });
+        }
+      }, 50);
+
+      document.querySelectorAll('.btn-select-game').forEach(btn => {
+        btn.onclick = () => startMiniGame(btn.dataset.game);
+      });
+    }
+
+    function renderHostFinalUI() {
+      const rankedFinal = TEAMS.map((t, i) => [i, hostGameState.cumulativeScores[i]])
+        .sort((a, b) => b[1] - a[1]);
+      const winnerTeam = TEAMS[rankedFinal[0][0]];
+
+      appEl.innerHTML = `
+        <div class="text-center py-6">
+          <h1 class="text-4xl font-black text-inkCustom mb-2">🎊 최종 우승 🎊</h1>
+          <div class="huge-pop text-8xl my-4">${winnerTeam.emoji}</div>
+          <h2 class="text-4xl font-black text-popCustom mb-6">👑 ${winnerTeam.name} 👑</h2>
+
+          <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-4 mb-6 card-shadow">
+            ${rankedFinal.map(([teamId, score], idx) => `
+              <div class="flex justify-between items-center py-2 border-b-2 border-lineCustom last:border-none font-bold text-lg">
+                <span>${['🥇 1등', '🥈 2등', '🥉 3등', '🎈 4등'][idx]} ${TEAMS[teamId].emoji} ${TEAMS[teamId].name}</span>
+                <span class="text-popCustom">${score}점</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <button id="btn-restart" class="w-full py-4 bg-popCustom border-4 border-inkCustom rounded-2xl text-white text-2xl font-black btn-pop">
+            처음부터 다시 하기
+          </button>
+        </div>
+      `;
+
+      document.getElementById('btn-restart').onclick = () => {
+        hostGameState.cumulativeScores = [0, 0, 0, 0];
+        hostGameState.playedCount = 0;
+        hostGameState.phase = "lobby";
+        renderHostUI();
+      };
+    }
+
+    /* -----------------------------------------------------------------
+       [참가자 Logic & UI]
+    ----------------------------------------------------------------- */
+    function initPlayerWithCode(code) {
+      userRole = "player";
+      myPlayerInfo.roomCode = code;
+
+      appEl.innerHTML = `
+        <div class="text-center">
+          <div class="bg-cardCustom border-4 border-inkCustom rounded-2xl p-3 mb-4 card-shadow">
+            <span class="text-xs font-bold text-subCustom">QR 접속 완료</span>
+            <h1 class="text-2xl font-black text-popCustom">방 코드: ${code}</h1>
+          </div>
+
+          <input id="input-name" type="text" maxlength="8" placeholder="내 닉네임 입력" 
+            class="w-full p-4 border-4 border-inkCustom rounded-2xl text-center text-xl font-bold bg-white mb-4 focus:outline-none">
+
+          <p class="text-sm font-bold text-inkCustom mb-2">소속 팀 선택</p>
+          <div class="grid grid-cols-2 gap-3 mb-6">
+            ${TEAMS.map(t => `
+              <div data-team="${t.id}" class="team-option ${t.bgClass} border-4 border-inkCustom rounded-2xl p-4 text-white font-bold opacity-50 cursor-pointer btn-pop">
+                <span class="text-3xl block mb-1">${t.emoji}</span>
+                ${t.name}
+              </div>
+            `).join('')}
+          </div>
+
+          <button id="btn-join-room" class="w-full py-4 bg-frog border-4 border-inkCustom rounded-2xl text-white text-2xl font-black btn-pop">
+            입장하기
+          </button>
+        </div>
+      `;
+
+      document.querySelectorAll('.team-option').forEach(el => {
+        el.onclick = () => {
+          myPlayerInfo.team = parseInt(el.dataset.team);
+          document.querySelectorAll('.team-option').forEach(x => x.classList.add('opacity-50'));
+          el.classList.remove('opacity-50');
+        };
+      });
+
+      document.getElementById('btn-join-room').onclick = () => {
+        const inputName = document.getElementById('input-name').value.trim();
+        
+        if (!inputName) return alert("닉네임을 입력해주세요!");
+        if (myPlayerInfo.team === null) return alert("팀을 선택해주세요!");
+
+        myPlayerInfo.name = inputName;
+
+        sendSignal("join_player", { roomCode: myPlayerInfo.roomCode, name: myPlayerInfo.name, team: myPlayerInfo.team });
+        
+        listenSignal((msg) => {
+          if (msg && msg.type === "host_state" && msg.payload && msg.payload.roomCode === myPlayerInfo.roomCode) {
+            handleHostStateUpdate(msg.payload);
+          }
+        });
+
+        renderPlayerWaitUI();
+      };
+    }
+
+    function renderPlayerWaitUI(msg) {
+      const team = TEAMS[myPlayerInfo.team];
+      appEl.innerHTML = `
+        <div class="text-center py-12">
+          <div class="bg-white border-2 border-inkCustom px-4 py-1 inline-block rounded-xl font-black text-popCustom mb-4">
+            🟢 실시간 연결됨 (방 번호: ${myPlayerInfo.roomCode})
+          </div>
+          <div class="huge-pop text-8xl mb-4">${team.emoji}</div>
+          <h1 class="text-4xl font-black text-inkCustom mb-2">${myPlayerInfo.name}님</h1>
+          <p class="text-xl font-bold text-subCustom mb-6">${team.name}</p>
+          <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-6 card-shadow">
+            <p class="text-lg font-bold text-inkCustom animate-pulse">
+              ${msg || '🎉 준비 완료! 진행자가 게임을 시작하면 내 폰 조작 화면으로 자동 전환됩니다.'}
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleHostStateUpdate(state) {
+      if (userRole !== "player") return;
+
+      const prevPhase = hostGameState.phase;
+      const prevGame = hostGameState.currentGame;
+      hostGameState = state;
+
+      if (state.phase === "count") {
+        if (prevPhase !== "count" || prevGame !== state.currentGame) {
+          localPlayerScore = 0;
+          localTimer = null;
+        }
+        const game = GAMES[state.currentGame];
+        appEl.innerHTML = `
+          <div class="text-center py-12">
+            <h1 class="text-3xl font-black text-inkCustom mb-2">${game.emoji} ${game.name}</h1>
+            <p class="text-subCustom font-bold mb-6">${game.desc}</p>
+            <div class="huge-pop text-8xl font-black text-popCustom mb-4">🔥</div>
+            <p class="text-2xl font-black text-inkCustom">준비하세요! (${state.countdown})</p>
+          </div>
+        `;
+      } else if (state.phase === "play") {
+        renderPlayerPlayControls();
+      } else if (state.phase === "result" || state.phase === "lobby") {
+        renderPlayerWaitUI();
+      }
+    }
+
+    function submitScore(score) {
+      sendSignal("score", { score, roomCode: myPlayerInfo.roomCode, name: myPlayerInfo.name });
+    }
+
+    /* -----------------------------------------------------------------
+       미니게임 조작 화면
+    ----------------------------------------------------------------- */
+    function renderPlayerPlayControls() {
+      const gameKey = hostGameState.currentGame;
+
+      switch(gameKey) {
+        case 'tap':
+        case 'beat':
+        case 'shake':
+        case 'tower':
+        case 'line':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 id="score-val" class="text-6xl font-black text-inkCustom mt-2">${localPlayerScore}</h1>
+              </div>
+              <button id="btn-action" class="w-full h-64 bg-rabbit border-4 border-inkCustom rounded-3xl text-white text-5xl font-black btn-pop">
+                TOUCH! 👆
+              </button>
+            </div>
+          `;
+          document.getElementById('btn-action').onpointerdown = () => {
+            localPlayerScore++;
+            document.getElementById('score-val').textContent = localPlayerScore;
+            submitScore(localPlayerScore);
+          };
+          break;
+
+        case 'run':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 id="score-val" class="text-6xl font-black text-inkCustom mt-2">${localPlayerScore}m</h1>
+              </div>
+              <div class="grid grid-cols-2 gap-4 w-full h-64">
+                <button id="btn-left" class="bg-penguin border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">왼발 🦶</button>
+                <button id="btn-right" class="bg-bear border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">오른발 🦶</button>
+              </div>
+            </div>
+          `;
+          const handleRun = (side) => {
+            if (lastActionSide === side) return;
+            lastActionSide = side;
+            localPlayerScore++;
+            document.getElementById('score-val').textContent = localPlayerScore + "m";
+            submitScore(localPlayerScore);
+          };
+          document.getElementById('btn-left').onpointerdown = () => handleRun('L');
+          document.getElementById('btn-right').onpointerdown = () => handleRun('R');
+          break;
+
+        case 'stop':
+          if (!localTimer) {
+            const startT = performance.now();
+            appEl.innerHTML = `
+              <div class="flex flex-col items-center justify-between min-h-[80vh]">
+                <div class="text-center">
+                  <span class="text-lg font-bold text-subCustom">속으로 10초를 세세요!</span>
+                  <h1 id="clock-display" class="text-6xl font-black text-inkCustom mt-4">0.00</h1>
+                </div>
+                <button id="btn-stop" class="w-full h-64 bg-red-400 border-4 border-inkCustom rounded-3xl text-white text-5xl font-black btn-pop">
+                  🛑 STOP!
+                </button>
+              </div>
+            `;
+            localTimer = setInterval(() => {
+              const elapsed = (performance.now() - startT) / 1000;
+              const clockEl = document.getElementById('clock-display');
+              if (clockEl) clockEl.textContent = elapsed < 3.0 ? elapsed.toFixed(2) : "??.??";
+            }, 50);
+
+            document.getElementById('btn-stop').onclick = () => {
+              clearInterval(localTimer);
+              localTimer = null;
+              const finalDiff = Math.abs(((performance.now() - startT) / 1000) - 10);
+              submitScore(finalDiff);
+              appEl.innerHTML = `
+                <div class="text-center py-12">
+                  <div class="huge-pop text-8xl mb-4">${finalDiff < 0.3 ? '🎯' : '😆'}</div>
+                  <h1 class="text-3xl font-black text-inkCustom mb-2">10초와 ${finalDiff.toFixed(2)}초 차이!</h1>
+                  <p class="text-subCustom font-bold">결과 발표를 기다려주세요!</p>
+                </div>
+              `;
+            };
+          }
+          break;
+
+        case 'mole':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-5xl font-black text-inkCustom mt-1">${localPlayerScore} 마리</h1>
+              </div>
+              <div class="grid grid-cols-3 gap-3 w-full my-4">
+                ${gameStateMole.map((active, i) => `
+                  <button data-idx="${i}" class="btn-mole h-24 ${active ? 'bg-bear' : 'bg-white'} border-4 border-inkCustom rounded-2xl text-4xl btn-pop flex items-center justify-center">
+                    ${active ? '🐹' : '🕳️'}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          if (Math.random() < 0.4) {
+            const randIdx = Math.floor(Math.random() * 9);
+            gameStateMole.fill(false);
+            gameStateMole[randIdx] = true;
+          }
+          document.querySelectorAll('.btn-mole').forEach(b => {
+            b.onclick = () => {
+              const idx = parseInt(b.dataset.idx);
+              if (gameStateMole[idx]) {
+                localPlayerScore++;
+                gameStateMole[idx] = false;
+                submitScore(localPlayerScore);
+                renderPlayerPlayControls();
+              }
+            };
+          });
+          break;
+
+        case 'rub':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 id="score-val" class="text-6xl font-black text-inkCustom mt-2">${localPlayerScore} 회</h1>
+              </div>
+              <div id="rub-zone" class="w-full h-64 bg-cardCustom border-4 border-inkCustom rounded-3xl flex items-center justify-center text-5xl btn-pop">
+                ↔️ 문질문질!
+              </div>
+            </div>
+          `;
+          const rubZone = document.getElementById('rub-zone');
+          let lastX = 0;
+          rubZone.ontouchmove = (e) => {
+            const currentX = e.touches[0].clientX;
+            if (Math.abs(currentX - lastX) > 25) {
+              localPlayerScore++;
+              lastX = currentX;
+              document.getElementById('score-val').textContent = localPlayerScore + " 회";
+              submitScore(localPlayerScore);
+            }
+          };
+          break;
+
+        case 'math':
+        case 'lr':
+          if (gameStateMath.a === 0) {
+            gameStateMath.a = Math.floor(Math.random() * 9) + 1;
+            gameStateMath.b = Math.floor(Math.random() * 9) + 1;
+          }
+          const isEven = (gameStateMath.a + gameStateMath.b) % 2 === 0;
+
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-5xl font-black text-inkCustom mt-1">${localPlayerScore}점</h1>
+              </div>
+              <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-8 w-full text-center card-shadow">
+                <span class="text-6xl font-black text-inkCustom">${gameStateMath.a} + ${gameStateMath.b} = ?</span>
+              </div>
+              <div class="grid grid-cols-2 gap-4 w-full h-32">
+                <button id="btn-odd" class="bg-bear border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">홀수 🎲</button>
+                <button id="btn-even" class="bg-penguin border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">짝수 🎲</button>
+              </div>
+            </div>
+          `;
+
+          const checkMathChoice = (chooseEven) => {
+            if (chooseEven === isEven) localPlayerScore += 10;
+            gameStateMath.a = Math.floor(Math.random() * 9) + 1;
+            gameStateMath.b = Math.floor(Math.random() * 9) + 1;
+            submitScore(localPlayerScore);
+            renderPlayerPlayControls();
+          };
+
+          document.getElementById('btn-odd').onclick = () => checkMathChoice(false);
+          document.getElementById('btn-even').onclick = () => checkMathChoice(true);
+          break;
+
+        case 'catch':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">자가 떨어지는 순간 캐치!</span>
+                <h1 class="text-4xl font-black text-inkCustom mt-2">${localPlayerScore}점</h1>
+              </div>
+              <div class="huge-pop text-8xl">📏</div>
+              <button id="btn-catch-action" class="w-full h-48 bg-frog border-4 border-inkCustom rounded-3xl text-white text-4xl font-black btn-pop">
+                지금 캐치! 🖐️
+              </button>
+            </div>
+          `;
+          document.getElementById('btn-catch-action').onclick = () => {
+            localPlayerScore += 10;
+            submitScore(localPlayerScore);
+            renderPlayerPlayControls();
+          };
+          break;
+
+        case 'lemon':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-5xl font-black text-inkCustom mt-1">${localPlayerScore}점</h1>
+              </div>
+              <div class="w-full h-48 bg-cardCustom border-4 border-inkCustom rounded-3xl flex flex-col justify-end p-4 card-shadow relative overflow-hidden">
+                <div class="absolute top-8 left-0 w-full h-12 bg-yellow-300 opacity-60 border-y-2 border-dashed border-inkCustom flex items-center justify-center font-black">목표 레몬존 🍋</div>
+                <div id="lemon-bar" class="w-full bg-frog border-2 border-inkCustom rounded-xl transition-all" style="height: ${gameStateLemon.val}%"></div>
+              </div>
+              <button id="btn-lemon-press" class="w-full h-32 bg-bear border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">
+                꾹 누르세요! 🍋
+              </button>
+            </div>
+          `;
+          document.getElementById('btn-lemon-press').onpointerdown = () => {
+            gameStateLemon.val = Math.min(100, gameStateLemon.val + 15);
+            if (gameStateLemon.val >= 40 && gameStateLemon.val <= 80) {
+              localPlayerScore += 5;
+              submitScore(localPlayerScore);
+            }
+            renderPlayerPlayControls();
+          };
+          break;
+
+        case 'piano':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-5xl font-black text-inkCustom mt-1">${localPlayerScore} 콤보</h1>
+              </div>
+              <div class="grid grid-cols-4 gap-2 w-full h-64 my-4">
+                ${[0, 1, 2, 3].map(col => `
+                  <button data-col="${col}" class="btn-piano-key h-full ${gameStatePiano.notes[0] === col ? 'bg-black text-white' : 'bg-white'} border-4 border-inkCustom rounded-2xl text-2xl font-black btn-pop flex items-end justify-center pb-4">
+                    🎹
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          document.querySelectorAll('.btn-piano-key').forEach(b => {
+            b.onclick = () => {
+              if (parseInt(b.dataset.col) === gameStatePiano.notes[0]) {
+                localPlayerScore++;
+                gameStatePiano.notes.shift();
+                gameStatePiano.notes.push(Math.floor(Math.random() * 4));
+                submitScore(localPlayerScore);
+                renderPlayerPlayControls();
+              }
+            };
+          });
+          break;
+
+        case 'rps':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-4xl font-black text-inkCustom mt-1">${localPlayerScore}승</h1>
+              </div>
+              <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-6 w-full text-center card-shadow">
+                <div class="text-6xl mb-2">✌️ 상대: 바위 ✊</div>
+                <h2 class="text-3xl font-black text-popCustom">👉 이겨라!</h2>
+              </div>
+              <div class="grid grid-cols-3 gap-2 w-full h-28">
+                <button data-choice="sci" class="btn-rps bg-rabbit border-4 border-inkCustom rounded-2xl text-3xl font-black btn-pop">✌️ 가위</button>
+                <button data-choice="rock" class="btn-rps bg-bear border-4 border-inkCustom rounded-2xl text-3xl font-black btn-pop">✊ 바위</button>
+                <button data-choice="paper" class="btn-rps bg-penguin border-4 border-inkCustom rounded-2xl text-3xl font-black btn-pop">🖐️ 보</button>
+              </div>
+            </div>
+          `;
+          document.querySelectorAll('.btn-rps').forEach(b => {
+            b.onclick = () => {
+              if (b.dataset.choice === "paper") localPlayerScore++;
+              submitScore(localPlayerScore);
+              renderPlayerPlayControls();
+            };
+          });
+          break;
+
+        case 'bomb':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-4xl font-black text-inkCustom mt-1">${localPlayerScore}개 해체</h1>
+              </div>
+              <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-6 w-full text-center card-shadow">
+                <div class="text-6xl mb-2">💣</div>
+                <h2 class="text-2xl font-black text-red-500">[지시] 🔴 빨간 전선을 자르세요!</h2>
+              </div>
+              <div class="grid grid-cols-3 gap-2 w-full h-28">
+                <button data-wire="red" class="btn-bomb bg-red-400 border-4 border-inkCustom rounded-2xl text-2xl font-black btn-pop">🔴</button>
+                <button data-wire="blue" class="btn-bomb bg-blue-400 border-4 border-inkCustom rounded-2xl text-2xl font-black btn-pop">🔵</button>
+                <button data-wire="green" class="btn-bomb bg-green-400 border-4 border-inkCustom rounded-2xl text-2xl font-black btn-pop">🟢</button>
+              </div>
+            </div>
+          `;
+          document.querySelectorAll('.btn-bomb').forEach(b => {
+            b.onclick = () => {
+              if (b.dataset.wire === "red") localPlayerScore++;
+              submitScore(localPlayerScore);
+              renderPlayerPlayControls();
+            };
+          });
+          break;
+
+        case 'dodge':
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-5xl font-black text-inkCustom mt-1">${localPlayerScore}m 생존</h1>
+              </div>
+              <div class="huge-pop text-8xl">🚀 ☄️</div>
+              <div class="grid grid-cols-2 gap-4 w-full h-36">
+                <button id="btn-dodge-l" class="bg-penguin border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">⬅️ 왼쪽</button>
+                <button id="btn-dodge-r" class="bg-rabbit border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">오른쪽 ➡️</button>
+              </div>
+            </div>
+          `;
+          const dodgeStep = () => {
+            localPlayerScore += 5;
+            submitScore(localPlayerScore);
+            renderPlayerPlayControls();
+          };
+          document.getElementById('btn-dodge-l').onclick = dodgeStep;
+          document.getElementById('btn-dodge-r').onclick = dodgeStep;
+          break;
+
+        default:
+          appEl.innerHTML = `
+            <div class="flex flex-col items-center justify-between min-h-[80vh]">
+              <div class="text-center">
+                <span class="text-lg font-bold text-subCustom">⏳ 남은 시간: ${hostGameState.timeLeft}초</span>
+                <h1 class="text-5xl font-black text-inkCustom mt-1">${localPlayerScore}점</h1>
+              </div>
+              <div class="bg-cardCustom border-4 border-inkCustom rounded-3xl p-6 w-full text-center card-shadow">
+                <div class="text-6xl mb-2">${GAMES[gameKey] ? GAMES[gameKey].emoji : '🎮'}</div>
+                <h2 class="text-2xl font-black text-inkCustom">${GAMES[gameKey] ? GAMES[gameKey].name : '미니게임'}</h2>
+              </div>
+              <div class="grid grid-cols-2 gap-4 w-full h-36">
+                <button id="btn-quiz-a" class="bg-frog border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">정답 ⭕</button>
+                <button id="btn-quiz-b" class="bg-rabbit border-4 border-inkCustom rounded-3xl text-white text-3xl font-black btn-pop">오답 ❌</button>
+              </div>
+            </div>
+          `;
+          const handleDefaultQuiz = () => {
+            localPlayerScore += 10;
+            submitScore(localPlayerScore);
+            renderPlayerPlayControls();
+          };
+          document.getElementById('btn-quiz-a').onclick = handleDefaultQuiz;
+          document.getElementById('btn-quiz-b').onclick = handleDefaultQuiz;
+          break;
+      }
+    }
+
+    /* 초기 화면 구동 */
+    renderHome();
+  </script>
+</body>
+</html>
