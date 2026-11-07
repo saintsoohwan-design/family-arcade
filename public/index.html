@@ -39,10 +39,16 @@ input{font:inherit;font-size:1.3rem;border:3px solid var(--ink);border-radius:18
 </style>
 </head>
 <body>
-<div id="app"><div style="margin-top:50px;"><h1>🎈 우리집 팀 오락실</h1><p class="sub">서버 연결 중...</p></div></div>
+<div id="app"></div>
 
 <script>
-const socket = io();
+let socket;
+try {
+  socket = io({ transports: ['websocket', 'polling'] });
+} catch(e) {
+  console.error(e);
+}
+
 const T = [["🐰","토끼팀","#ff8fab"],["🐻","곰팀","#ffb347"],["🐸","개구리팀","#6fcf4f"],["🐧","펭귄팀","#5bb8f5"]];
 const G = {
   tap:   {n:"연타왕", e:"👆", d:10, h:"화면을 빠르게 연타하세요!"},
@@ -63,40 +69,41 @@ let currentRoom = null;
 let pInfo = { name: "", team: null };
 let pScore = 0, pTimer = null, pStopped = false, pT0 = 0;
 
-socket.on("connect", () => {
-  if(qRoomCode){
-    renderPlayerSetup(qRoomCode);
-  } else {
-    renderHome();
-  }
-});
+// 즉시 메인 화면 또는 참가 화면 렌더링 (서버 응답 대기 제거)
+if(qRoomCode){
+  renderPlayerSetup(qRoomCode);
+} else {
+  renderHome();
+}
 
-socket.on("ROOM_CREATED", ({ roomCode }) => {
-  currentRoom = { roomCode, players: {}, scores: {}, ph: "lobby" };
-  renderHostView();
-});
-
-socket.on("STATE_UPDATE", (room) => {
-  currentRoom = room;
-  if(isHost){
+if(socket){
+  socket.on("ROOM_CREATED", ({ roomCode }) => {
+    currentRoom = { roomCode, players: {}, scores: {}, ph: "lobby" };
     renderHostView();
-  } else {
-    renderPlayerStateView();
-  }
-});
+  });
 
-socket.on("LIVE_SCORE_UPDATE", ({ scores }) => {
-  if(currentRoom){
-    currentRoom.scores = scores;
-    if(isHost && currentRoom.ph === "play") renderHostView();
-  }
-});
+  socket.on("STATE_UPDATE", (room) => {
+    currentRoom = room;
+    if(isHost){
+      renderHostView();
+    } else {
+      renderPlayerStateView();
+    }
+  });
 
-socket.on("JOIN_SUCCESS", () => {
-  renderPlayerWaitScreen("연결 완료! 대기 중입니다 🎈");
-});
+  socket.on("LIVE_SCORE_UPDATE", ({ scores }) => {
+    if(currentRoom){
+      currentRoom.scores = scores;
+      if(isHost && currentRoom.ph === "play") renderHostView();
+    }
+  });
 
-socket.on("ERROR_MSG", (msg) => { alert(msg); renderHome(); });
+  socket.on("JOIN_SUCCESS", () => {
+    renderPlayerWaitScreen("연결 완료! 대기 중입니다 🎈");
+  });
+
+  socket.on("ERROR_MSG", (msg) => { alert(msg); renderHome(); });
+}
 
 function renderHome(){
   draw(`
@@ -114,7 +121,12 @@ function renderHome(){
   `);
   document.getElementById("btn-create").onclick = () => {
     isHost = true;
-    socket.emit("HOST_CREATE_ROOM");
+    if(socket) socket.emit("HOST_CREATE_ROOM");
+    else {
+      // 오프라인 폴백 방 생성
+      currentRoom = { roomCode: "1234", players: {}, scores: {}, ph: "lobby" };
+      renderHostView();
+    }
   };
   document.getElementById("btn-manual").onclick = () => {
     const code = document.getElementById("code-input").value.trim();
@@ -163,7 +175,7 @@ function renderHostView(){
     <div class="grid">${roster}</div>
     <h2 style="margin-top:15px;">🎮 게임 선택</h2>
     <div class="grid">
-      ${Object.entries(G).map(([k, g]) => `<button class="btn big start-btn" data-g="${k}">${g.e}${g.n}</button>`).join("")}
+      ${Object.entries(G).map(([k, g]) => `<button class="btn big start-btn" data-g="${k}">${g.e} ${g.n}</button>`).join("")}
     </div>
   `);
 
@@ -173,7 +185,24 @@ function renderHostView(){
   document.querySelectorAll(".start-btn").forEach(btn => {
     btn.onclick = () => {
       const gKey = btn.dataset.g;
-      socket.emit("HOST_START_GAME", { roomCode: currentRoom.roomCode, gKey, duration: G[gKey].d });
+      if(socket) {
+        socket.emit("HOST_START_GAME", { roomCode: currentRoom.roomCode, gKey, duration: G[gKey].d });
+      } else {
+        // 로컬 테스트용 구동
+        currentRoom.g = gKey;
+        currentRoom.ph = "count";
+        currentRoom.n = 3;
+        renderHostView();
+        let t = setInterval(() => {
+          currentRoom.n--;
+          if(currentRoom.n <= 0) {
+            clearInterval(t);
+            currentRoom.ph = "play";
+            currentRoom.left = G[gKey].d;
+          }
+          renderHostView();
+        }, 1000);
+      }
     };
   });
 }
@@ -204,7 +233,7 @@ function renderPlayerSetup(code){
     <div class="card">
       <input type="text" id="p-name" placeholder="닉네임 (예: 삼촌)" maxlength="8"><br><br>
       <h2>팀 선택</h2>
-      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}"><b>${t[0]}${t[1]}</b></div>`).join("")}</div><br>
+      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}"><b>${t[0]} ${t[1]}</b></div>`).join("")}</div><br>
       <button class="btn ok big" id="btn-p-join" style="width:90%">입장하기 🚀</button>
     </div>
   `);
@@ -220,7 +249,11 @@ function renderPlayerSetup(code){
     pInfo.name = document.getElementById("p-name").value.trim();
     if(!pInfo.name) return alert("닉네임을 입력하세요.");
     if(pInfo.team === null) return alert("팀을 선택해 주세요.");
-    socket.emit("PLAYER_JOIN", { roomCode: code, name: pInfo.name, team: pInfo.team });
+    if(socket) {
+      socket.emit("PLAYER_JOIN", { roomCode: code, name: pInfo.name, team: pInfo.team });
+    } else {
+      renderPlayerWaitScreen("연결 완료! 대기 중입니다 🎈");
+    }
   };
 }
 
@@ -254,7 +287,7 @@ function runPlayerGameUI(gKey, duration){
     document.getElementById("b-tap").onpointerdown = () => {
       pScore++;
       document.getElementById("cnt").textContent = pScore;
-      socket.emit("PLAYER_SCORE", { val: pScore });
+      if(socket) socket.emit("PLAYER_SCORE", { val: pScore });
     };
   } else if(gKey === "run"){
     draw(`<h2>🏃 번갈아 달리기</h2><div id="cnt" class="huge" style="font-size:3.5rem">0m</div><div class="row"><button class="btn alt" id="b-l">왼발</button><button class="btn ok" id="b-r">오른발</button></div>`);
@@ -265,4 +298,29 @@ function runPlayerGameUI(gKey, duration){
         last = side;
         pScore++;
         document.getElementById("cnt").textContent = pScore + "m";
-        socket.emit("PLAYER_SCORE", {
+        if(socket) socket.emit("PLAYER_SCORE", { val: pScore });
+      };
+    });
+  } else if(gKey === "stop"){
+    draw(`<h2>⏱️ 10초를 멈춰라</h2><div class="huge" id="clock" style="font-size:4rem">0.00</div><button class="btn big pad ok" id="b-stop">🛑 STOP!</button>`);
+    document.getElementById("b-stop").onpointerdown = () => {
+      if(pStopped) return;
+      pStopped = true;
+      const diff = Math.abs(((performance.now() - pT0) / 1000) - 10);
+      if(socket) socket.emit("PLAYER_SCORE", { val: diff });
+      draw(`<div class="huge">🎯</div><h1>${diff.toFixed(2)}초 차이!</h1>`);
+    };
+  }
+
+  clearInterval(pTimer);
+  pTimer = setInterval(() => {
+    const elapsed = (performance.now() - pT0) / 1000;
+    if(gKey === "stop" && !pStopped){
+      const el = document.getElementById("clock");
+      if(el) el.textContent = elapsed < 3 ? elapsed.toFixed(2) : "??.??";
+    }
+  }, 50);
+}
+</script>
+</body>
+</html>
