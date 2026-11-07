@@ -11,49 +11,41 @@
 :root{--bg:#fff4e0;--card:#fff;--ink:#4a3b5c;--sub:#8a7a9b;--line:#ffcf99;--pop:#ff8fab;box-sizing:border-box}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{background:var(--bg);background-image:radial-gradient(var(--line) 2px,transparent 2px);background-size:26px 26px;color:var(--ink);font-family:"Jua","Apple SD Gothic Neo",sans-serif;text-align:center;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+body{background:var(--bg);background-image:radial-gradient(var(--line) 2px,transparent 2px);background-size:26px 26px;color:var(--ink);font-family:"Jua",sans-serif;text-align:center;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 #app{max-width:760px;margin:0 auto;padding:18px 14px 40px}
 h1{font-size:2.1rem;margin:10px 0 4px}h2{margin:8px 0}
 .sub{color:var(--sub);margin:0 0 14px}
 .card{background:var(--card);border:3px solid var(--line);border-radius:28px;padding:16px;margin:12px 0;box-shadow:0 6px 0 var(--line)}
-.btn{font:inherit;font-size:1.25rem;border:3px solid var(--ink);background:var(--pop);color:#fff;border-radius:22px;padding:12px 20px;box-shadow:0 6px 0 var(--ink);cursor:pointer;margin:6px;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.btn{font:inherit;font-size:1.25rem;border:3px solid var(--ink);background:var(--pop);color:#fff;border-radius:22px;padding:12px 20px;box-shadow:0 6px 0 var(--ink);cursor:pointer;margin:6px}
 .btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
-.btn.alt{background:#6ec6ff}.btn.ok{background:#7ed957}.btn.big{font-size:1.6rem;padding:14px 20px}
+.btn.alt{background:#6ec6ff}.btn.ok{background:#7ed957}.btn.big{font-size:1.5rem;padding:14px 20px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.team{border-radius:22px;padding:12px;border:3px solid var(--ink);color:#fff;font-size:1.2rem;text-shadow:0 2px 0 rgba(0,0,0,.2);text-align:left}
-.team b{display:block;font-size:1.8rem;text-align:center}
-.team .plist{margin-top:8px;font-size:1rem;background:rgba(0,0,0,.15);border-radius:12px;padding:6px;min-height:48px}
-.member-tag{display:inline-block;background:rgba(255,255,255,.3);border-radius:8px;padding:2px 6px;margin:2px;font-size:.95rem}
-.pick{opacity:.55;cursor:pointer}.pick.on{opacity:1;transform:scale(1.04);border-width:5px}
+.team{border-radius:22px;padding:12px;border:3px solid var(--ink);color:#fff;font-size:1.2rem;text-align:left}
+.team b{display:block;font-size:1.6rem;text-align:center}
+.team .plist{margin-top:8px;font-size:1rem;background:rgba(0,0,0,.15);border-radius:12px;padding:6px;min-height:40px}
+.member-tag{display:inline-block;background:rgba(255,255,255,.3);border-radius:8px;padding:2px 6px;margin:2px;font-size:.9rem}
+.pick{opacity:.55;cursor:pointer}.pick.on{opacity:1;transform:scale(1.04);border-width:4px}
 .bar{display:flex;align-items:center;gap:8px;margin:8px 0;text-align:left}
-.bar .nm{width:110px;flex:none;font-size:1.1rem}
-.bar .tr{flex:1;background:rgba(0,0,0,.08);border-radius:99px;height:30px;overflow:hidden;border:2px solid var(--ink)}
-.bar .fl{height:100%;border-radius:99px;transition:width .3s}
-.bar .v{width:70px;text-align:right;flex:none;font-weight:700}
-.huge{font-size:6rem;line-height:1;margin:15px 0;animation:pop .6s infinite alternate}
-@keyframes pop{to{transform:scale(1.1) rotate(2deg)}}
-input{font:inherit;font-size:1.3rem;border:3px solid var(--ink);border-radius:18px;padding:10px 14px;width:80%;text-align:center;background:var(--card);color:var(--ink)}
+.bar .nm{width:110px;flex:none}
+.bar .tr{flex:1;background:rgba(0,0,0,.08);border-radius:99px;height:26px;overflow:hidden;border:2px solid var(--ink)}
+.bar .fl{height:100%;border-radius:99px}
+.bar .v{width:70px;text-align:right;font-weight:700}
+.huge{font-size:5rem;margin:15px 0}
+input{font:inherit;font-size:1.3rem;border:3px solid var(--ink);border-radius:18px;padding:10px;width:80%;text-align:center;background:var(--card);color:var(--ink)}
 .pad{height:40vh;width:100%;font-size:2.5rem}
-.row{display:flex;gap:10px}.row .btn{flex:1;height:38vh;font-size:2.2rem;margin:6px 0}
-.small{font-size:.95rem;color:var(--sub)}
 .badge{background:#4a3b5c;color:#fff;border-radius:12px;padding:4px 10px;font-size:1.1rem;display:inline-block}
 #qr-box{display:flex;justify-content:center;margin:14px 0}
 #qr-box img,#qr-box canvas{border:4px solid var(--ink);border-radius:16px;padding:8px;background:#fff}
 </style>
 </head>
 <body>
-<div id="app">
-  <div style="margin-top:50px;">
-    <h1>🎈 우리집 팀 오락실</h1>
-    <p class="sub">서버에 연결 중입니다...</p>
-  </div>
-</div>
+<div id="app"><div style="margin-top:50px;"><h1>🎈 우리집 팀 오락실</h1><p class="sub">서버 연결 중...</p></div></div>
 
 <script>
 const socket = io();
 const T = [["🐰","토끼팀","#ff8fab"],["🐻","곰팀","#ffb347"],["🐸","개구리팀","#6fcf4f"],["🐧","펭귄팀","#5bb8f5"]];
 const G = {
-  tap:   {n:"연타왕", e:"👆", d:10, h:"화면을 마구 터치하세요!"},
+  tap:   {n:"연타왕", e:"👆", d:10, h:"화면을 빠르게 연타하세요!"},
   run:   {n:"번갈아 달리기", e:"🏃", d:10, h:"왼발과 오른발을 번갈아 터치!"},
   stop:  {n:"10초를 멈춰라", e:"⏱️", d:14, h:"3초 뒤 암전! 정확히 10초에 STOP!"},
   shake: {n:"흔들어라 셰이킷", e:"📱", d:10, h:"화면을 빠르게 연타하세요!"},
@@ -69,32 +61,7 @@ const qRoomCode = urlParams.get("room");
 let isHost = false;
 let currentRoom = null;
 let pInfo = { name: "", team: null };
-let pScore = 0, pLastBtn = null, pTimer = null, pStopped = false, pT0 = 0;
-
-function renderHome(){
-  draw(`
-    <h1>🎈 우리집 팀 오락실</h1>
-    <p class="sub">Render 고속 소켓 서버</p>
-    <div class="card">
-      <h2>🎤 큰 화면 진행자</h2>
-      <button class="btn big ok" id="btn-create">방 만들기 (게임 시작)</button>
-    </div>
-    <div class="card">
-      <h2>📱 폰으로 참가</h2>
-      <input type="text" id="code-input" placeholder="4자리 방 코드" maxlength="4" style="width:160px;margin-bottom:8px;"><br>
-      <button class="btn alt" id="btn-manual">수동 입장</button>
-    </div>
-  `);
-  document.getElementById("btn-create").onclick = () => {
-    isHost = true;
-    socket.emit("HOST_CREATE_ROOM");
-  };
-  document.getElementById("btn-manual").onclick = () => {
-    const code = document.getElementById("code-input").value.trim();
-    if(code.length !== 4) return alert("4자리 방 코드를 입력하세요.");
-    renderPlayerSetup(code);
-  };
-}
+let pScore = 0, pTimer = null, pStopped = false, pT0 = 0;
 
 socket.on("connect", () => {
   if(qRoomCode){
@@ -111,7 +78,7 @@ socket.on("ROOM_CREATED", ({ roomCode }) => {
 
 socket.on("STATE_UPDATE", (room) => {
   currentRoom = room;
-  if(isHost) {
+  if(isHost){
     renderHostView();
   } else {
     renderPlayerStateView();
@@ -126,36 +93,47 @@ socket.on("LIVE_SCORE_UPDATE", ({ scores }) => {
 });
 
 socket.on("JOIN_SUCCESS", () => {
-  renderPlayerWaitScreen("연결 완료! 큰 화면에서 게임을 선택하길 기다려주세요 🎈");
+  renderPlayerWaitScreen("연결 완료! 대기 중입니다 🎈");
 });
 
 socket.on("ERROR_MSG", (msg) => { alert(msg); renderHome(); });
+
+function renderHome(){
+  draw(`
+    <h1>🎈 우리집 팀 오락실</h1>
+    <p class="sub">Render 고속 소켓 서버</p>
+    <div class="card">
+      <h2>🎤 큰 화면 진행자</h2>
+      <button class="btn big ok" id="btn-create">방 만들기 (게임 시작)</button>
+    </div>
+    <div class="card">
+      <h2>📱 폰으로 참가</h2>
+      <input type="text" id="code-input" placeholder="4자리 방 코드" maxlength="4"><br><br>
+      <button class="btn alt" id="btn-manual">수동 입장</button>
+    </div>
+  `);
+  document.getElementById("btn-create").onclick = () => {
+    isHost = true;
+    socket.emit("HOST_CREATE_ROOM");
+  };
+  document.getElementById("btn-manual").onclick = () => {
+    const code = document.getElementById("code-input").value.trim();
+    if(code.length !== 4) return alert("4자리 방 코드를 입력하세요.");
+    renderPlayerSetup(code);
+  };
+}
 
 function renderHostView(){
   if(!currentRoom) return;
 
   if(currentRoom.ph === "count"){
-    return draw(`
-      <h1>${G[currentRoom.g].e} ${G[currentRoom.g].n}</h1>
-      <p class="sub">${G[currentRoom.g].h}</p>
-      <div class="huge">${currentRoom.n}</div>
-    `);
+    return draw(`<h1>${G[currentRoom.g].e} ${G[currentRoom.g].n}</h1><p class="sub">${G[currentRoom.g].h}</p><div class="huge">${currentRoom.n}</div>`);
   }
   if(currentRoom.ph === "play"){
-    return draw(`
-      <h1>${G[currentRoom.g].e} ${G[currentRoom.g].n}</h1>
-      <div class="card">
-        <h2>⏳ 남은 시간: ${Math.max(0, currentRoom.left)}초</h2>
-        ${renderBars(currentRoom.g)}
-      </div>
-    `);
+    return draw(`<h1>${G[currentRoom.g].e} ${G[currentRoom.g].n}</h1><div class="card"><h2>⏳ 남은 시간: ${Math.max(0, currentRoom.left)}초</h2>${renderBars(currentRoom.g)}</div>`);
   }
   if(currentRoom.ph === "result"){
-    draw(`
-      <h1>🎉 경기 결과</h1>
-      <div class="card">${renderBars(currentRoom.g)}</div>
-      <button class="btn ok big" id="btn-next">다음 게임 선택 ▶</button>
-    `);
+    draw(`<h1>🎉 경기 결과</h1><div class="card">${renderBars(currentRoom.g)}</div><button class="btn ok big" id="btn-next">다음 게임 선택 ▶</button>`);
     document.getElementById("btn-next").onclick = () => {
       currentRoom.ph = "lobby";
       renderHostView();
@@ -170,42 +148,32 @@ function renderHostView(){
     return `<div class="team" style="background:${t[2]}"><b>${t[0]} ${t[1]} (${m.length}명)</b><div class="plist">${list}</div></div>`;
   }).join("");
 
-  // ⭐ 접속 URL 및 방 코드 명확화 보완
-  const baseUrl = location.origin + location.pathname;
-  const joinUrl = `${baseUrl}?room=${currentRoom.roomCode}`;
+  const joinUrl = `${location.origin}${location.pathname}?room=${currentRoom.roomCode}`;
 
   draw(`
     <h1>🎈 진행자 대기실</h1>
-    <div class="badge" style="font-size:1.6rem;padding:6px 16px;">방 코드: <b>${currentRoom.roomCode}</b></div>
-    <p class="sub" style="margin-top:6px;">접속 인원: <b>${pCount}명</b></p>
+    <div class="badge">방 코드: ${currentRoom.roomCode}</div>
+    <p class="sub">접속 인원: <b>${pCount}명</b></p>
     <div class="card">
       <h2>📱 QR 스캔하여 참가</h2>
       <div id="qr-box"></div>
       <p class="small" style="word-break:break-all;">${joinUrl}</p>
     </div>
-    <h2>👥 팀별 참가자 현황</h2>
+    <h2>👥 팀별 현황</h2>
     <div class="grid">${roster}</div>
-    <h2 style="margin-top:20px;">🎮 시작할 게임 선택</h2>
-    <div class="grid" id="game-btn-grid">
-      ${Object.entries(G).map(([k, g]) => `<button class="btn big g-start-btn" data-g="${k}">${g.e} ${g.n}</button>`).join("")}
+    <h2 style="margin-top:15px;">🎮 게임 선택</h2>
+    <div class="grid">
+      ${Object.entries(G).map(([k, g]) => `<button class="btn big start-btn" data-g="${k}">${g.e}${g.n}</button>`).join("")}
     </div>
   `);
 
   const qrBox = document.getElementById("qr-box");
-  if(qrBox){ 
-    qrBox.innerHTML = ""; 
-    new QRCode(qrBox, { text: joinUrl, width: 160, height: 160 }); 
-  }
+  if(qrBox){ qrBox.innerHTML = ""; new QRCode(qrBox, { text: joinUrl, width: 140, height: 140 }); }
 
-  document.querySelectorAll(".g-start-btn").forEach(btn => {
-    btn.onclick = (e) => {
-      e.preventDefault();
-      const gKey = btn.getAttribute("data-g");
-      socket.emit("HOST_START_GAME", { 
-        roomCode: currentRoom.roomCode, 
-        gKey: gKey, 
-        duration: G[gKey].d 
-      });
+  document.querySelectorAll(".start-btn").forEach(btn => {
+    btn.onclick = () => {
+      const gKey = btn.dataset.g;
+      socket.emit("HOST_START_GAME", { roomCode: currentRoom.roomCode, gKey, duration: G[gKey].d });
     };
   });
 }
@@ -224,7 +192,7 @@ function renderBars(gKey){
   return r.map((x, idx) => {
     const t = T[x[0]];
     const w = gKey === "stop" ? Math.max(8, 100 - x[1]*10) : Math.max(8, (x[1]/maxV)*100);
-    const txt = gKey === "stop" ? x[1].toFixed(2) + "초 차이" : Math.round(x[1]) + "점";
+    const txt = gKey === "stop" ? x[1].toFixed(2) + "초" : Math.round(x[1]) + "점";
     return `<div class="bar"><span class="nm">${idx===0?"👑 ":""}${t[0]} ${t[1]}</span><div class="tr"><div class="fl" style="width:${w}%;background:${t[2]}"></div></div><span class="v">${txt}</span></div>`;
   }).join("");
 }
@@ -232,12 +200,12 @@ function renderBars(gKey){
 function renderPlayerSetup(code){
   draw(`
     <h1>📱 참가자 등록</h1>
-    <div class="badge" style="font-size:1.4rem;">방 코드: <b>${code}</b></div>
-    <div class="card" style="margin-top:14px;">
-      <input type="text" id="p-name" placeholder="닉네임 (예: 삼촌)" maxlength="8" style="margin-bottom:12px;"><br>
-      <h2>팀을 선택하세요</h2>
-      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}"><b>${t[0]} ${t[1]}</b></div>`).join("")}</div>
-      <button class="btn ok big" id="btn-p-join" style="margin-top:14px;width:90%">입장하기 🚀</button>
+    <div class="badge">방 코드: ${code}</div>
+    <div class="card">
+      <input type="text" id="p-name" placeholder="닉네임 (예: 삼촌)" maxlength="8"><br><br>
+      <h2>팀 선택</h2>
+      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}"><b>${t[0]}${t[1]}</b></div>`).join("")}</div><br>
+      <button class="btn ok big" id="btn-p-join" style="width:90%">입장하기 🚀</button>
     </div>
   `);
 
@@ -258,11 +226,7 @@ function renderPlayerSetup(code){
 
 function renderPlayerWaitScreen(msg){
   const t = T[pInfo.team];
-  draw(`
-    <div class="huge" style="margin-top:20px;">${t[0]}</div>
-    <h1>${pInfo.name} 님 (${t[1]})</h1>
-    <div class="card"><p style="font-size:1.3rem;">${msg}</p></div>
-  `);
+  draw(`<div class="huge">${t[0]}</div><h1>${pInfo.name} (${t[1]})</h1><div class="card"><p>${msg}</p></div>`);
 }
 
 function renderPlayerStateView(){
@@ -271,19 +235,19 @@ function renderPlayerStateView(){
   const gKey = currentRoom.g;
 
   if(ph === "lobby"){
-    renderPlayerWaitScreen("대기실에 있습니다. 큰 화면에서 게임을 선택하길 기다려주세요!");
+    renderPlayerWaitScreen("대기 중입니다. 큰 화면을 보세요!");
   } else if(ph === "count"){
-    draw(`<h1>${G[gKey].e} ${G[gKey].n}</h1><div class="huge">🔥</div><h2>준비하세요!</h2>`);
+    draw(`<h1>${G[gKey].e} ${G[gKey].n}</h1><div class="huge">🔥</div><h2>준비!</h2>`);
   } else if(ph === "play"){
     runPlayerGameUI(gKey, currentRoom.left);
   } else if(ph === "result"){
     clearInterval(pTimer);
-    draw(`<div class="huge">🎉</div><h1>경기 종료!</h1><p class="sub">큰 화면(TV)에서 순위를 확인하세요!</p>`);
+    draw(`<div class="huge">🎉</div><h1>게임 종료!</h1><p>TV 화면에서 순위를 확인하세요!</p>`);
   }
 }
 
 function runPlayerGameUI(gKey, duration){
-  pScore = 0; pLastBtn = null; pStopped = false; pT0 = performance.now();
+  pScore = 0; pStopped = false; pT0 = performance.now();
 
   if(gKey === "tap" || gKey === "balloon" || gKey === "shake"){
     draw(`<h2>${G[gKey].e} ${G[gKey].n}</h2><button class="btn pad" id="b-tap">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
@@ -293,37 +257,12 @@ function runPlayerGameUI(gKey, duration){
       socket.emit("PLAYER_SCORE", { val: pScore });
     };
   } else if(gKey === "run"){
-    draw(`<h2>🏃 번갈아 달리기</h2><div id="cnt" class="huge" style="font-size:3.5rem">0m</div><div class="row"><button class="btn alt" id="b-l">왼발 🦶</button><button class="btn ok" id="b-r">오른발 🦶</button></div>`);
+    draw(`<h2>🏃 번갈아 달리기</h2><div id="cnt" class="huge" style="font-size:3.5rem">0m</div><div class="row"><button class="btn alt" id="b-l">왼발</button><button class="btn ok" id="b-r">오른발</button></div>`);
+    let last = null;
     ["l", "r"].forEach(side => {
       document.getElementById("b-" + side).onpointerdown = () => {
-        if(pLastBtn === side) return;
-        pLastBtn = side;
+        if(last === side) return;
+        last = side;
         pScore++;
         document.getElementById("cnt").textContent = pScore + "m";
-        socket.emit("PLAYER_SCORE", { val: pScore });
-      };
-    });
-  } else if(gKey === "stop"){
-    draw(`<h2>⏱️ 10초를 멈춰라</h2><div class="huge" id="clock" style="font-size:4rem">0.00</div><button class="btn big pad ok" id="b-stop">🛑 STOP!</button>`);
-    document.getElementById("b-stop").onpointerdown = () => {
-      if(pStopped) return;
-      pStopped = true;
-      const diff = Math.abs(((performance.now() - pT0) / 1000) - 10);
-      pScore = diff;
-      socket.emit("PLAYER_SCORE", { val: diff });
-      draw(`<div class="huge">🎯</div><h1>${diff.toFixed(2)}초 차이!</h1><p class="sub">결과 발표 대기 중...</p>`);
-    };
-  }
-
-  clearInterval(pTimer);
-  pTimer = setInterval(() => {
-    const elapsed = (performance.now() - pT0) / 1000;
-    if(gKey === "stop" && !pStopped){
-      const el = document.getElementById("clock");
-      if(el) el.textContent = elapsed < 3 ? elapsed.toFixed(2) : "??.??";
-    }
-  }, 50);
-}
-</script>
-</body>
-</html>
+        socket.emit("PLAYER_SCORE", {
