@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리집 팀 오락실</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#fff4e0;--card:#fff;--ink:#4a3b5c;--sub:#8a7a9b;--line:#ffcf99;--pop:#ff8fab;box-sizing:border-box}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);background-image:radial-gradient(var(--line) 2px,transparent 2px);background-size:26px 26px;color:var(--ink);font-family:"Jua","Apple SD Gothic Neo",sans-serif;text-align:center;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+#app{max-width:760px;margin:0 auto;padding:18px 14px 40px}
+h1{font-size:2.1rem;margin:10px 0 4px}h2{margin:8px 0}
+.sub{color:var(--sub);margin:0 0 14px}
+.card{background:var(--card);border:3px solid var(--line);border-radius:28px;padding:16px;margin:12px 0;box-shadow:0 6px 0 var(--line)}
+.btn{font:inherit;font-size:1.25rem;border:3px solid var(--ink);background:var(--pop);color:#fff;border-radius:22px;padding:12px 20px;box-shadow:0 6px 0 var(--ink);cursor:pointer;margin:6px;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.btn.alt{background:#6ec6ff}.btn.ok{background:#7ed957}.btn.big{font-size:1.8rem;padding:18px 26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.team{border-radius:22px;padding:12px;border:3px solid var(--ink);color:#fff;font-size:1.2rem;text-shadow:0 2px 0 rgba(0,0,0,.2);text-align:left}
+.team b{display:block;font-size:1.8rem;text-align:center}
+.team .plist{margin-top:8px;font-size:1rem;background:rgba(0,0,0,.15);border-radius:12px;padding:6px;min-height:48px}
+.member-tag{display:inline-block;background:rgba(255,255,255,.3);border-radius:8px;padding:2px 6px;margin:2px;font-size:.95rem}
+.pick{opacity:.55;cursor:pointer}.pick.on{opacity:1;transform:scale(1.04);border-width:5px}
+.bar{display:flex;align-items:center;gap:8px;margin:8px 0;text-align:left}
+.bar .nm{width:110px;flex:none;font-size:1.1rem}
+.bar .tr{flex:1;background:rgba(0,0,0,.08);border-radius:99px;height:30px;overflow:hidden;border:2px solid var(--ink)}
+.bar .fl{height:100%;border-radius:99px;transition:width .3s}
+.bar .v{width:70px;text-align:right;flex:none;font-weight:700}
+.huge{font-size:6rem;line-height:1;margin:15px 0;animation:pop .6s infinite alternate}
+@keyframes pop{to{transform:scale(1.1) rotate(2deg)}}
+input{font:inherit;font-size:1.3rem;border:3px solid var(--ink);border-radius:18px;padding:10px 14px;width:80%;text-align:center;background:var(--card);color:var(--ink)}
+.pad{height:40vh;width:100%;font-size:2.5rem}
+.row{display:flex;gap:10px}.row
