@@ -19,7 +19,7 @@ h1{font-size:2.1rem;margin:10px 0 4px}h2{margin:8px 0}
 .btn{font:inherit;font-size:1.25rem;border:3px solid var(--ink);background:var(--pop);color:#fff;border-radius:22px;padding:12px 20px;box-shadow:0 6px 0 var(--ink);cursor:pointer;margin:6px;text-shadow:0 2px 0 rgba(0,0,0,.2)}
 .btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
 .btn.alt{background:#6ec6ff}.btn.ok{background:#7ed957}.btn.big{font-size:1.8rem;padding:18px 26px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .team{border-radius:22px;padding:12px;border:3px solid var(--ink);color:#fff;font-size:1.2rem;text-shadow:0 2px 0 rgba(0,0,0,.2);text-align:left}
 .team b{display:block;font-size:1.8rem;text-align:center}
 .team .plist{margin-top:8px;font-size:1rem;background:rgba(0,0,0,.15);border-radius:12px;padding:6px;min-height:48px}
@@ -47,10 +47,14 @@ input{font:inherit;font-size:1.3rem;border:3px solid var(--ink);border-radius:18
 <script>
 const socket = io();
 const T = [["🐰","토끼팀","#ff8fab"],["🐻","곰팀","#ffb347"],["🐸","개구리팀","#6fcf4f"],["🐧","펭귄팀","#5bb8f5"]];
+
+// 전체 미니게임 리스트
 const G = {
-  tap:{n:"연타왕",e:"👆",d:10,h:"화면을 빠르게 연타!"},
-  run:{n:"번갈아 달리기",e:"🏃",d:10,h:"왼발과 오른발을 번갈아 눌러요!"},
-  stop:{n:"10초를 멈춰라",e:"⏱️",d:14,h:"3초 뒤 숨겨지는 시계! 딱 10초에 STOP!"}
+  tap:   {n:"연타왕", e:"👆", d:10, h:"화면을 빠르게 연타하세요!"},
+  run:   {n:"번갈아 달리기", e:"🏃", d:10, h:"왼발/오른발을 번갈아 눌러요!"},
+  stop:  {n:"10초를 멈춰라", e:"⏱️", d:14, h:"3초 뒤 숨겨지는 시계! 딱 10초에 STOP!"},
+  shake: {n:"흔들어라 셰이킷", e:"📱", d:10, h:"스마트폰을 마구 흔드세요!"},
+  balloon:{n:"풍선 터뜨리기", e:"🎈", d:10, h:"커지는 풍선을 터지기 전에 연타!"}
 };
 
 const app = document.getElementById("app");
@@ -122,10 +126,16 @@ socket.on("JOIN_SUCCESS", () => {
 
 socket.on("ERROR_MSG", (msg) => { alert(msg); renderHome(); });
 
+/* --- 진행자 (Host) 뷰 --- */
 function renderHostView(){
   if(!currentRoom) return;
+
   if(currentRoom.ph === "count"){
-    return draw(`<h1>${G[currentRoom.g].e} ${G[currentRoom.g].n}</h1><div class="huge">${currentRoom.n}</div>`);
+    return draw(`
+      <h1>${G[currentRoom.g].e} ${G[currentRoom.g].n}</h1>
+      <p class="sub">${G[currentRoom.g].h}</p>
+      <div class="huge">${currentRoom.n}</div>
+    `);
   }
   if(currentRoom.ph === "play"){
     return draw(`
@@ -148,6 +158,7 @@ function renderHostView(){
     };
   }
 
+  // 대기실
   const pCount = Object.keys(currentRoom.players || {}).length;
   const roster = T.map((t, idx) => {
     const m = Object.values(currentRoom.players || {}).filter(p => p.team === idx);
@@ -170,7 +181,7 @@ function renderHostView(){
     <div class="grid">${roster}</div>
     <h2 style="margin-top:20px;">🎮 시작할 게임 선택</h2>
     <div class="grid">
-      ${Object.entries(G).map(([k, g]) => `<button class="btn big" data-g="${k}">${g.e} ${g.n}</button>`).join("")}
+      ${Object.entries(G).map(([k, g]) => `<button class="btn big" data-g="${k}">${g.e}${g.n}</button>`).join("")}
     </div>
   `);
 
@@ -203,6 +214,7 @@ function renderBars(gKey){
   }).join("");
 }
 
+/* --- 참가자 (Player) 뷰 --- */
 function renderPlayerSetup(code){
   draw(`
     <h1>📱 참가자 등록</h1>
@@ -210,94 +222,11 @@ function renderPlayerSetup(code){
     <div class="card" style="margin-top:14px;">
       <input type="text" id="p-name" placeholder="닉네임 (예: 삼촌)" maxlength="8" style="margin-bottom:12px;"><br>
       <h2>팀을 선택하세요</h2>
-      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}"><b>${t[0]} ${t[1]}</b></div>`).join("")}</div>
+      <div class="grid">${T.map((t, i) => `<div class="team pick" data-t="${i}" style="background:${t[2]}"><b>${t[0]}${t[1]}</b></div>`).join("")}</div>
       <button class="btn ok big" id="btn-p-join" style="margin-top:14px;width:90%">입장하기 🚀</button>
     </div>
   `);
 
   document.querySelectorAll(".pick").forEach(el => {
     el.onclick = () => {
-      pInfo.team = parseInt(el.dataset.t);
-      document.querySelectorAll(".pick").forEach(x => x.classList.toggle("on", x === el));
-    };
-  });
-
-  document.getElementById("btn-p-join").onclick = () => {
-    pInfo.name = document.getElementById("p-name").value.trim();
-    if(!pInfo.name) return alert("닉네임을 입력하세요.");
-    if(pInfo.team === null) return alert("팀을 선택해 주세요.");
-    socket.emit("PLAYER_JOIN", { roomCode: code, name: pInfo.name, team: pInfo.team });
-  };
-}
-
-function renderPlayerWaitScreen(msg){
-  const t = T[pInfo.team];
-  draw(`
-    <div class="huge" style="margin-top:20px;">${t[0]}</div>
-    <h1>${pInfo.name} 님 (${t[1]})</h1>
-    <div class="card"><p style="font-size:1.3rem;">${msg}</p></div>
-  `);
-}
-
-function renderPlayerStateView(){
-  if(!currentRoom) return;
-  const ph = currentRoom.ph;
-  const gKey = currentRoom.g;
-
-  if(ph === "lobby"){
-    renderPlayerWaitScreen("대기실에 있습니다. 큰 화면에서 게임을 선택하길 기다려주세요!");
-  } else if(ph === "count"){
-    draw(`<h1>${G[gKey].e} ${G[gKey].n}</h1><div class="huge">🔥</div><h2>준비하세요!</h2>`);
-  } else if(ph === "play"){
-    runPlayerGameUI(gKey, currentRoom.left);
-  } else if(ph === "result"){
-    clearInterval(pTimer);
-    draw(`<div class="huge">🎉</div><h1>경기 종료!</h1><p class="sub">큰 화면(TV)에서 순위를 확인하세요!</p>`);
-  }
-}
-
-function runPlayerGameUI(gKey, duration){
-  pScore = 0; pLastBtn = null; pStopped = false; pT0 = performance.now();
-
-  if(gKey === "tap"){
-    draw(`<h2>👆 연타왕</h2><button class="btn pad" id="b-tap">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
-    document.getElementById("b-tap").onpointerdown = () => {
-      pScore++;
-      document.getElementById("cnt").textContent = pScore;
-      socket.emit("PLAYER_SCORE", { val: pScore });
-    };
-  } else if(gKey === "run"){
-    draw(`<h2>🏃 번갈아 달리기</h2><div id="cnt" class="huge" style="font-size:3.5rem">0m</div><div class="row"><button class="btn alt" id="b-l">왼발 🦶</button><button class="btn ok" id="b-r">오른발 🦶</button></div>`);
-    ["l", "r"].forEach(side => {
-      document.getElementById("b-" + side).onpointerdown = () => {
-        if(pLastBtn === side) return;
-        pLastBtn = side;
-        pScore++;
-        document.getElementById("cnt").textContent = pScore + "m";
-        socket.emit("PLAYER_SCORE", { val: pScore });
-      };
-    });
-  } else if(gKey === "stop"){
-    draw(`<h2>⏱️ 10초를 멈춰라</h2><div class="huge" id="clock" style="font-size:4rem">0.00</div><button class="btn big pad ok" id="b-stop">🛑 STOP!</button>`);
-    document.getElementById("b-stop").onpointerdown = () => {
-      if(pStopped) return;
-      pStopped = true;
-      const diff = Math.abs(((performance.now() - pT0) / 1000) - 10);
-      pScore = diff;
-      socket.emit("PLAYER_SCORE", { val: diff });
-      draw(`<div class="huge">🎯</div><h1>${diff.toFixed(2)}초 차이!</h1><p class="sub">결과 발표 대기 중...</p>`);
-    };
-  }
-
-  clearInterval(pTimer);
-  pTimer = setInterval(() => {
-    const elapsed = (performance.now() - pT0) / 1000;
-    if(gKey === "stop" && !pStopped){
-      const el = document.getElementById("clock");
-      if(el) el.textContent = elapsed < 3 ? elapsed.toFixed(2) : "??.??";
-    }
-  }, 50);
-}
-</script>
-</body>
-</html>
+      pInfo.team
