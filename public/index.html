@@ -3,41 +3,139 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>연타왕 단독 테스트</title>
+<title>우리집 미니 오락실</title>
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#fff4e0;--card:#fff;--ink:#4a3b5c;--pop:#ff8fab}
+:root{--bg:#fff4e0;--card:#fff;--ink:#4a3b5c;--pop:#ff8fab;--ok:#7ed957;--alt:#6ec6ff}
 body{background:var(--bg);color:var(--ink);font-family:"Jua",sans-serif;text-align:center;margin:0;padding:20px;touch-action:manipulation}
-#app{max-width:500px;margin:0 auto;padding:20px}
-.card{background:var(--card);border:4px solid var(--ink);border-radius:24px;padding:20px;margin-top:20px;box-shadow:0 6px 0 var(--ink)}
-.pad{height:50vh;width:100%;font-size:2.5rem;border:4px solid var(--ink);background:var(--pop);color:#fff;border-radius:24px;cursor:pointer;box-shadow:0 6px 0 var(--ink);text-shadow:0 2px 0 rgba(0,0,0,0.2)}
+#app{max-width:500px;margin:0 auto;padding:15px}
+h1{font-size:2.2rem;margin:10px 0}
+.card{background:var(--card);border:4px solid var(--ink);border-radius:24px;padding:20px;margin:15px 0;box-shadow:0 6px 0 var(--ink)}
+.btn{font:inherit;font-size:1.3rem;border:4px solid var(--ink);background:var(--pop);color:#fff;border-radius:20px;padding:14px 24px;cursor:pointer;margin:8px;box-shadow:0 6px 0 var(--ink);text-shadow:0 2px 0 rgba(0,0,0,0.2)}
+.btn:active{transform:translateY(6px);box-shadow:0 0 0 var(--ink)}
+.btn.ok{background:var(--ok)}.btn.alt{background:var(--alt)}.btn.big{font-size:1.6rem;padding:20px;width:100%;margin:10px 0}
+.pad{height:45vh;width:100%;font-size:2.5rem;border:4px solid var(--ink);background:var(--pop);color:#fff;border-radius:24px;cursor:pointer;box-shadow:0 6px 0 var(--ink);text-shadow:0 2px 0 rgba(0,0,0,0.2)}
 .pad:active{transform:translateY(6px);box-shadow:0 0 0 var(--ink)}
-h1{font-size:2.5rem;margin:10px 0}
+.huge{font-size:4.5rem;margin:10px 0}
+.sub{color:#8a7a9b;font-size:1.1rem;margin-bottom:15px}
 </style>
 </head>
 <body>
-<div id="app">
-  <h1>👆 연타왕 단독 테스트</h1>
-  <p style="color:#8a7a9b;font-size:1.2rem;">버튼을 마구 연타해 보세요!</p>
-  <div class="card">
-    <button class="pad" id="b-tap">
-      터치!!<br>
-      <div id="cnt" style="font-size:5rem;margin-top:10px;">0</div>
-    </button>
-  </div>
-  <button onclick="location.reload()" style="margin-top:20px;font:inherit;padding:10px 20px;border-radius:12px;border:2px solid var(--ink);background:#6ec6ff;color:#fff;cursor:pointer;">초기화</button>
-</div>
+<div id="app"></div>
 
 <script>
-let score = 0;
-const btn = document.getElementById("b-tap");
-const cnt = document.getElementById("cnt");
+const app = document.getElementById("app");
+const draw = html => { app.innerHTML = html; };
 
-btn.onpointerdown = (e) => {
-  e.preventDefault();
-  score++;
-  cnt.textContent = score;
-};
+// 메인 메뉴 (게임 2개 선택)
+function renderMenu() {
+  draw(`
+    <h1>🎮 우리집 미니 오락실</h1>
+    <p class="sub">하고 싶은 게임을 선택하세요!</p>
+    <div class="card">
+      <button class="btn big" onclick="startTapGame()">👆 게임 1: 연타왕</button>
+      <button class="btn big alt" onclick="startStopGame()" style="margin-top:15px;">⏱️ 게임 2: 10초를 멈춰라</button>
+    </div>
+  `);
+}
+
+/* --- 게임 1: 연타왕 (10초 동안 빠르게 연타) --- */
+function startTapGame() {
+  let score = 0;
+  let timeLeft = 10;
+  let isPlaying = true;
+
+  draw(`
+    <h1>👆 연타왕</h1>
+    <div class="sub">10초 동안 최대한 많이 누르세요!</div>
+    <div class="card">
+      <h2>남은 시간: <span id="time" style="color:#ff8fab">10</span>초</h2>
+      <button class="pad" id="tap-btn">
+        터치!!<br>
+        <div id="cnt" class="huge">0</div>
+      </button>
+    </div>
+  `);
+
+  const btn = document.getElementById("tap-btn");
+  const cnt = document.getElementById("cnt");
+  const timeEl = document.getElementById("time");
+
+  btn.onpointerdown = (e) => {
+    e.preventDefault();
+    if(!isPlaying) return;
+    score++;
+    cnt.textContent = score;
+  };
+
+  const timer = setInterval(() => {
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    if(timeLeft <= 0) {
+      clearInterval(timer);
+      isPlaying = false;
+      draw(`
+        <h1>🎉 게임 종료!</h1>
+        <div class="card">
+          <h2>내 기록</h2>
+          <div class="huge">${score}점</div>
+          <button class="btn ok big" onclick="renderMenu()">메인으로 돌아가기</button>
+        </div>
+      `);
+    }
+  }, 1000);
+}
+
+/* --- 게임 2: 10초를 멈춰라 (10.00초에 가장 가깝게 멈추기) --- */
+function startStopGame() {
+  let startTime = performance.now();
+  let isStopped = false;
+
+  draw(`
+    <h1>⏱️ 10초를 멈춰라</h1>
+    <div class="sub">3초 뒤 시계가 숨겨집니다. 정확히 10초에 누르세요!</div>
+    <div class="card">
+      <div class="huge" id="clock">0.00</div>
+      <button class="btn ok big pad" id="stop-btn">🛑 STOP!</button>
+    </div>
+  `);
+
+  const clockEl = document.getElementById("clock");
+  const stopBtn = document.getElementById("stop-btn");
+
+  const interval = setInterval(() => {
+    if(isStopped) return;
+    const elapsed = (performance.now() - startTime) / 1000;
+    if(elapsed < 3) {
+      clockEl.textContent = elapsed.toFixed(2);
+    } else {
+      clockEl.textContent = "??.??"; // 3초 뒤 암전
+    }
+  }, 30);
+
+  stopBtn.onpointerdown = (e) => {
+    e.preventDefault();
+    if(isStopped) return;
+    isStopped = true;
+    clearInterval(interval);
+
+    const finalElapsed = (performance.now() - startTime) / 1000;
+    const diff = Math.abs(finalElapsed - 10).toFixed(2);
+
+    draw(`
+      <h1>🎯 결과 발표</h1>
+      <div class="card">
+        <h2>내가 멈춘 시간</h2>
+        <div class="huge">${finalElapsed.toFixed(2)}초</div>
+        <p class="sub">정답 10초와의 차이: <b>${diff}초</b></p>
+        <button class="btn ok big" onclick="renderMenu()" style="margin-top:10px;">메인으로 돌아가기</button>
+      </div>
+    `);
+  };
+}
+
+// 첫 실행 시 메뉴 표시
+renderMenu();
 </script>
 </body>
 </html>
