@@ -12,7 +12,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 const rooms = {};
 
 io.on('connection', (socket) => {
-  // 방 생성
   socket.on('HOST_CREATE_ROOM', () => {
     const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     rooms[roomCode] = {
@@ -22,30 +21,27 @@ io.on('connection', (socket) => {
       n: 3,
       left: 0,
       players: {},
-      scores: {},
-      tot: [0, 0, 0, 0]
+      scores: {}
     };
     socket.join(roomCode);
     socket.roomCode = roomCode;
     socket.emit('ROOM_CREATED', { roomCode });
   });
 
-  // 참가자 입장
   socket.on('PLAYER_JOIN', ({ roomCode, name, team }) => {
     const room = rooms[roomCode];
-    if (!room) {
-      return socket.emit('ERROR_MSG', '존재하지 않는 방 코드입니다.');
-    }
+    if (!room) return socket.emit('ERROR_MSG', '존재하지 않는 방 코드입니다.');
+    
     room.players[socket.id] = { name, team };
     room.scores[socket.id] = 0;
     socket.join(roomCode);
     socket.roomCode = roomCode;
 
+    // 참가 직후 모든 참가자와 진행자에게 즉시 상태 전파
     io.to(roomCode).emit('STATE_UPDATE', room);
     socket.emit('JOIN_SUCCESS');
   });
 
-  // 게임 시작 (진행자 클릭)
   socket.on('HOST_START_GAME', ({ roomCode, gKey, duration }) => {
     const room = rooms[roomCode];
     if (!room) return;
@@ -79,7 +75,6 @@ io.on('connection', (socket) => {
     }, 1000);
   });
 
-  // 점수 수신
   socket.on('PLAYER_SCORE', ({ val }) => {
     const roomCode = socket.roomCode;
     if (!roomCode || !rooms[roomCode]) return;
@@ -88,7 +83,6 @@ io.on('connection', (socket) => {
     io.to(room.hostId).emit('LIVE_SCORE_UPDATE', { scores: room.scores });
   });
 
-  // 연결 해제
   socket.on('disconnect', () => {
     const roomCode = socket.roomCode;
     if (roomCode && rooms[roomCode]) {
@@ -99,7 +93,4 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`서버 실행 중: ${PORT}`);
-});
+server.listen(process.env.PORT || 3000);
