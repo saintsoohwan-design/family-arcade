@@ -18,10 +18,10 @@ h1{font-size:2.1rem;margin:10px 0 4px}h2{margin:8px 0}
 .card{background:var(--card);border:3px solid var(--line);border-radius:28px;padding:16px;margin:12px 0;box-shadow:0 6px 0 var(--line)}
 .btn{font:inherit;font-size:1.25rem;border:3px solid var(--ink);background:var(--pop);color:#fff;border-radius:22px;padding:12px 20px;box-shadow:0 6px 0 var(--ink);cursor:pointer;margin:6px;text-shadow:0 2px 0 rgba(0,0,0,.2)}
 .btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
-.btn.alt{background:#6ec6ff}.btn.ok{background:#7ed957}.btn.big{font-size:1.6rem;padding:16px 22px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.btn.alt{background:#6ec6ff}.btn.ok{background:#7ed957}.btn.big{font-size:1.6rem;padding:14px 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .team{border-radius:22px;padding:12px;border:3px solid var(--ink);color:#fff;font-size:1.2rem;text-shadow:0 2px 0 rgba(0,0,0,.2);text-align:left}
-.team b{display:block;font-size:1.6rem;text-align:center}
+.team b{display:block;font-size:1.8rem;text-align:center}
 .team .plist{margin-top:8px;font-size:1rem;background:rgba(0,0,0,.15);border-radius:12px;padding:6px;min-height:48px}
 .member-tag{display:inline-block;background:rgba(255,255,255,.3);border-radius:8px;padding:2px 6px;margin:2px;font-size:.95rem}
 .pick{opacity:.55;cursor:pointer}.pick.on{opacity:1;transform:scale(1.04);border-width:5px}
@@ -30,60 +30,34 @@ h1{font-size:2.1rem;margin:10px 0 4px}h2{margin:8px 0}
 .bar .tr{flex:1;background:rgba(0,0,0,.08);border-radius:99px;height:30px;overflow:hidden;border:2px solid var(--ink)}
 .bar .fl{height:100%;border-radius:99px;transition:width .3s}
 .bar .v{width:70px;text-align:right;flex:none;font-weight:700}
-.huge{font-size:5.5rem;line-height:1;margin:15px 0;animation:pop .6s infinite alternate}
+.huge{font-size:6rem;line-height:1;margin:15px 0;animation:pop .6s infinite alternate}
 @keyframes pop{to{transform:scale(1.1) rotate(2deg)}}
 input{font:inherit;font-size:1.3rem;border:3px solid var(--ink);border-radius:18px;padding:10px 14px;width:80%;text-align:center;background:var(--card);color:var(--ink)}
-.pad{height:38vh;width:100%;font-size:2.5rem}
-.row{display:flex;gap:10px}.row .btn{flex:1;height:36vh;font-size:2.2rem;margin:6px 0}
+.pad{height:40vh;width:100%;font-size:2.5rem}
+.row{display:flex;gap:10px}.row .btn{flex:1;height:38vh;font-size:2.2rem;margin:6px 0}
 .small{font-size:.95rem;color:var(--sub)}
 .badge{background:#4a3b5c;color:#fff;border-radius:12px;padding:4px 10px;font-size:1.1rem;display:inline-block}
 #qr-box{display:flex;justify-content:center;margin:14px 0}
 #qr-box img,#qr-box canvas{border:4px solid var(--ink);border-radius:16px;padding:8px;background:#fff}
-.game-card{border:2px solid var(--ink);background:#fff;border-radius:16px;padding:10px;cursor:pointer;box-shadow:0 4px 0 var(--ink);font-size:1.1rem}
-.game-card:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 </style>
 </head>
 <body>
 <div id="app">
   <div style="margin-top:50px;">
     <h1>🎈 우리집 팀 오락실</h1>
-    <p class="sub">서버에 연결하는 중입니다... (잠시만 기다려주세요)</p>
+    <p class="sub">서버에 연결 중입니다...</p>
   </div>
 </div>
 
 <script>
-let socket = null;
-try { socket = io(); } catch(e) { console.error(e); }
-
+const socket = io();
 const T = [["🐰","토끼팀","#ff8fab"],["🐻","곰팀","#ffb347"],["🐸","개구리팀","#6fcf4f"],["🐧","펭귄팀","#5bb8f5"]];
-
-// 25종 전체 미니게임 완벽 정의
 const G = {
-  tap:      {n:"연타왕", e:"👆", d:10, h:"화면을 빠르게 연타하세요!"},
-  run:      {n:"번갈아 달리기", e:"🏃", d:10, h:"왼발과 오른발을 번갈아 눌러요!"},
-  stop:     {n:"10초를 멈춰라", e:"⏱️", d:14, h:"3초 뒤 숨겨지는 시계! 딱 10초에 STOP!"},
-  shake:    {n:"흔들어라 셰이킷", e:"📱", d:10, h:"화면을 마구 터치해 흔드세요!"},
-  balloon:  {n:"풍선 터뜨리기", e:"🎈", d:10, h:"커지는 풍선을 빠르게 연타!"},
-  basket:   {n:"버저비터 슛", e:"🏀", d:10, h:"골대에 들어가는 순간 슛 터치!"},
-  tug:      {n:"줄다리기 대작전", e:"🪵", d:10, h:"팀원 모두 일제히 연타!"},
-  flash:    {n:"빛의 속도 탭", e:"⚡", d:10, h:"화면에 뜨는 노란 버튼을 빠르게!"},
-  mole:     {n:"두더지 잡기", e:"🔨", d:10, h:"튀어나오는 두더지를 탭!"},
-  color:    {n:"짝맞추기 탭", e:"🧩", d:10, h:"지정된 색상 버튼을 터치!"},
-  card:     {n:"카드 뒤집기", e:"🃏", d:10, h:"카드 뒤집기 연속 연타!"},
-  quiz:     {n:"OX 퀴즈 연타", e:"⭕", d:10, h:"O 버튼을 무한 클릭!"},
-  num:      {n:"숫자 터치 123", e:"🔢", d:10, h:"1부터 차례대로 터치!"},
-  watermelon:{n:"수박 깨기", e:"🍉", d:10, h:"단단한 수박을 파괴 연타!"},
-  plane:    {n:"비행기 조종", e:"✈️", d:10, h:"좌우 버튼으로 조종하기!"},
-  mosquito: {n:"모기 잡기", e:"🦟", d:10, h:"날아다니는 모기를 때려잡아라!"},
-  bomb:     {n:"폭탄 돌리기", e:"💣", d:10, h:"폭탄을 터지기 전에 넘겨라!"},
-  cham:     {n:"참참참 승부", e:"👈", d:10, h:"왼쪽/오른쪽 신속 결정!"},
-  rsp:      {n:"가위바위보", e:"✌️", d:10, h:"가위바위보 버튼 연타!"},
-  siren:    {n:"사이렌 울리기", e:"🚨", d:10, h:"사이렌 게이지 가득 채우기!"},
-  dice:     {n:"주사위 굴리기", e:"🎲", d:10, h:"주사위를 빠르게 굴려라!"},
-  ice:      {n:"얼음 깨기", e:"🧊", d:10, h:"얼음 조각 무한 깨기!"},
-  heart:    {n:"하트 줍기", e:"💖", d:10, h:"쏟아지는 하트를 수집!"},
-  coin:     {n:"동전 줍기", e:"🪙", d:10, h:"화면의 동전을 모아라!"},
-  champ:    {n:"최종 챔피언전", e:"🏆", d:12, h:"모든 파워를 담아 무한 터치!"}
+  tap:   {n:"연타왕", e:"👆", d:10, h:"화면을 마구 터치하세요!"},
+  run:   {n:"번갈아 달리기", e:"🏃", d:10, h:"왼발과 오른발을 번갈아 터치!"},
+  stop:  {n:"10초를 멈춰라", e:"⏱️", d:14, h:"3초 뒤 암전! 정확히 10초에 STOP!"},
+  shake: {n:"흔들어라 셰이킷", e:"📱", d:10, h:"화면을 빠르게 연타하세요!"},
+  balloon:{n:"풍선 터뜨리기", e:"🎈", d:10, h:"풍선이 커질 때까지 터치!"}
 };
 
 const app = document.getElementById("app");
@@ -100,7 +74,7 @@ let pScore = 0, pLastBtn = null, pTimer = null, pStopped = false, pT0 = 0;
 function renderHome(){
   draw(`
     <h1>🎈 우리집 팀 오락실</h1>
-    <p class="sub">Render 실시간 25종 풀 패키지 모드</p>
+    <p class="sub">Render 고속 소켓 서버</p>
     <div class="card">
       <h2>🎤 큰 화면 진행자</h2>
       <button class="btn big ok" id="btn-create">방 만들기 (게임 시작)</button>
@@ -113,7 +87,7 @@ function renderHome(){
   `);
   document.getElementById("btn-create").onclick = () => {
     isHost = true;
-    if(socket) socket.emit("HOST_CREATE_ROOM");
+    socket.emit("HOST_CREATE_ROOM");
   };
   document.getElementById("btn-manual").onclick = () => {
     const code = document.getElementById("code-input").value.trim();
@@ -122,42 +96,40 @@ function renderHome(){
   };
 }
 
-if(socket){
-  socket.on("connect", () => {
-    if(qRoomCode){
-      renderPlayerSetup(qRoomCode);
-    } else {
-      renderHome();
-    }
-  });
+socket.on("connect", () => {
+  if(qRoomCode){
+    renderPlayerSetup(qRoomCode);
+  } else {
+    renderHome();
+  }
+});
 
-  socket.on("ROOM_CREATED", ({ roomCode }) => {
-    currentRoom = { roomCode, players: {}, scores: {}, ph: "lobby" };
+socket.on("ROOM_CREATED", ({ roomCode }) => {
+  currentRoom = { roomCode, players: {}, scores: {}, ph: "lobby" };
+  renderHostView();
+});
+
+socket.on("STATE_UPDATE", (room) => {
+  currentRoom = room;
+  if(isHost) {
     renderHostView();
-  });
+  } else {
+    renderPlayerStateView();
+  }
+});
 
-  socket.on("STATE_UPDATE", (room) => {
-    currentRoom = room;
-    if(isHost) {
-      renderHostView();
-    } else {
-      renderPlayerStateView();
-    }
-  });
+socket.on("LIVE_SCORE_UPDATE", ({ scores }) => {
+  if(currentRoom){
+    currentRoom.scores = scores;
+    if(isHost && currentRoom.ph === "play") renderHostView();
+  }
+});
 
-  socket.on("LIVE_SCORE_UPDATE", ({ scores }) => {
-    if(currentRoom){
-      currentRoom.scores = scores;
-      if(isHost && currentRoom.ph === "play") renderHostView();
-    }
-  });
+socket.on("JOIN_SUCCESS", () => {
+  renderPlayerWaitScreen("연결 완료! 큰 화면에서 게임을 선택하길 기다려주세요 🎈");
+});
 
-  socket.on("JOIN_SUCCESS", () => {
-    renderPlayerWaitScreen("연결 완료! 진행자가 게임을 고르길 기다려주세요 🎈");
-  });
-
-  socket.on("ERROR_MSG", (msg) => { alert(msg); renderHome(); });
-}
+socket.on("ERROR_MSG", (msg) => { alert(msg); renderHome(); });
 
 function renderHostView(){
   if(!currentRoom) return;
@@ -179,15 +151,16 @@ function renderHostView(){
     `);
   }
   if(currentRoom.ph === "result"){
-    return draw(`
+    draw(`
       <h1>🎉 경기 결과</h1>
       <div class="card">${renderBars(currentRoom.g)}</div>
       <button class="btn ok big" id="btn-next">다음 게임 선택 ▶</button>
-    `),
+    `);
     document.getElementById("btn-next").onclick = () => {
       currentRoom.ph = "lobby";
       renderHostView();
     };
+    return;
   }
 
   const pCount = Object.keys(currentRoom.players || {}).length;
@@ -202,7 +175,7 @@ function renderHostView(){
   draw(`
     <h1>🎈 진행자 대기실</h1>
     <div class="badge">방 코드: ${currentRoom.roomCode}</div>
-    <p class="sub">접속 중인 참가자: <b>${pCount}명</b></p>
+    <p class="sub">접속 인원: <b>${pCount}명</b></p>
     <div class="card">
       <h2>📱 QR 스캔하여 참가</h2>
       <div id="qr-box"></div>
@@ -210,23 +183,25 @@ function renderHostView(){
     </div>
     <h2>👥 팀별 참가자 현황</h2>
     <div class="grid">${roster}</div>
-    <h2 style="margin-top:20px;">🎮 미니게임 25종 선택</h2>
-    <div class="grid">
-      ${Object.entries(G).map(([k, g]) => `
-        <div class="game-card" data-g="${k}">
-          <div style="font-size:2rem">${g.e}</div>
-          <b>${g.n}</b>
-        </div>
-      `).join("")}
+    <h2 style="margin-top:20px;">🎮 시작할 게임 선택</h2>
+    <div class="grid" id="game-btn-grid">
+      ${Object.entries(G).map(([k, g]) => `<button class="btn big g-start-btn" data-g="${k}">${g.e} ${g.n}</button>`).join("")}
     </div>
   `);
 
   const qrBox = document.getElementById("qr-box");
   if(qrBox){ qrBox.innerHTML = ""; new QRCode(qrBox, { text: joinUrl, width: 150, height: 150 }); }
 
-  document.querySelectorAll("[data-g]").forEach(btn => {
-    btn.onclick = () => {
-      socket.emit("HOST_START_GAME", { roomCode: currentRoom.roomCode, gKey: btn.dataset.g, duration: G[btn.dataset.g].d });
+  // 게임 선택 클릭 이벤트 직접 연결
+  document.querySelectorAll(".g-start-btn").forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const gKey = btn.getAttribute("data-g");
+      socket.emit("HOST_START_GAME", { 
+        roomCode: currentRoom.roomCode, 
+        gKey: gKey, 
+        duration: G[gKey].d 
+      });
     };
   });
 }
@@ -306,7 +281,14 @@ function renderPlayerStateView(){
 function runPlayerGameUI(gKey, duration){
   pScore = 0; pLastBtn = null; pStopped = false; pT0 = performance.now();
 
-  if(gKey === "run"){
+  if(gKey === "tap" || gKey === "balloon" || gKey === "shake"){
+    draw(`<h2>${G[gKey].e} ${G[gKey].n}</h2><button class="btn pad" id="b-tap">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
+    document.getElementById("b-tap").onpointerdown = () => {
+      pScore++;
+      document.getElementById("cnt").textContent = pScore;
+      socket.emit("PLAYER_SCORE", { val: pScore });
+    };
+  } else if(gKey === "run"){
     draw(`<h2>🏃 번갈아 달리기</h2><div id="cnt" class="huge" style="font-size:3.5rem">0m</div><div class="row"><button class="btn alt" id="b-l">왼발 🦶</button><button class="btn ok" id="b-r">오른발 🦶</button></div>`);
     ["l", "r"].forEach(side => {
       document.getElementById("b-" + side).onpointerdown = () => {
@@ -326,23 +308,6 @@ function runPlayerGameUI(gKey, duration){
       pScore = diff;
       socket.emit("PLAYER_SCORE", { val: diff });
       draw(`<div class="huge">🎯</div><h1>${diff.toFixed(2)}초 차이!</h1><p class="sub">결과 발표 대기 중...</p>`);
-    };
-  } else if(gKey === "plane" || gKey === "cham"){
-    draw(`<h2>${G[gKey].e} ${G[gKey].n}</h2><div id="cnt" class="huge" style="font-size:3.5rem">0</div><div class="row"><button class="btn alt" id="b-l">👈 왼쪽</button><button class="btn ok" id="b-r">오른쪽 👉</button></div>`);
-    ["l", "r"].forEach(side => {
-      document.getElementById("b-" + side).onpointerdown = () => {
-        pScore++;
-        document.getElementById("cnt").textContent = pScore;
-        socket.emit("PLAYER_SCORE", { val: pScore });
-      };
-    });
-  } else {
-    // 일반 터치/연타 류 20개 미니게임 공통 터치 패드
-    draw(`<h2>${G[gKey].e} ${G[gKey].n}</h2><button class="btn pad" id="b-tap">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
-    document.getElementById("b-tap").onpointerdown = () => {
-      pScore++;
-      document.getElementById("cnt").textContent = pScore;
-      socket.emit("PLAYER_SCORE", { val: pScore });
     };
   }
 
