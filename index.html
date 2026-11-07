@@ -21,6 +21,11 @@ body{background:var(--bg);color:var(--ink);font-family:"Jua",sans-serif;text-ali
 .team .plist{margin-top:6px;font-size:0.85rem;background:rgba(0,0,0,0.15);border-radius:10px;padding:4px;min-height:36px}
 .member-tag{display:inline-block;background:rgba(255,255,255,0.3);border-radius:6px;padding:2px 5px;margin:2px}
 .pick{opacity:0.5;cursor:pointer}.pick.on{opacity:1;transform:scale(1.03);border-width:4px}
+.bar{display:flex;align-items:center;gap:8px;margin:8px 0;text-align:left}
+.bar .nm{width:110px;flex:none}
+.bar .tr{flex:1;background:rgba(0,0,0,0.08);border-radius:99px;height:26px;overflow:hidden;border:2px solid var(--ink)}
+.bar .fl{height:100%;border-radius:99px}
+.bar .v{width:70px;text-align:right;font-weight:700}
 .huge{font-size:4.5rem;margin:10px 0}
 input{font:inherit;font-size:1.2rem;border:3px solid var(--ink);border-radius:14px;padding:8px;width:80%;text-align:center;background:var(--card);color:var(--ink)}
 .pad{height:40vh;width:100%;font-size:2.2rem}
@@ -47,10 +52,8 @@ let peer = null, conn = null, connections = [];
 let isHost = false, players = {}, scores = {}, myInfo = {name:"", team:null};
 
 if(hostId) {
-  // 참가자 모드
   initClient(hostId);
 } else {
-  // 메인 홈 모드
   renderHome();
 }
 
@@ -62,16 +65,11 @@ function renderHome() {
       <h2>🎤 진행자 (TV/PC)</h2>
       <button class="btn big ok" onclick="startHosting()">방 만들기 (TV 모드)</button>
     </div>
-    <div class="card">
-      <h2>📱 참가자 (폰)</h2>
-      <p style="font-size:0.9rem">TV 화면의 QR코드를 스캔하거나 링크로 접속하세요!</p>
-    </div>
   `);
 }
 
 function startHosting() {
   isHost = true;
-  // 무작위 호스트 ID 생성 (4자리)
   const myCode = Math.floor(1000 + Math.random() * 9000).toString();
   peer = new Peer("arcade-" + myCode);
 
@@ -85,19 +83,23 @@ function startHosting() {
       if(data.type === 'JOIN') {
         players[c.peer] = { name: data.name, team: data.team };
         scores[c.peer] = 0;
-        broadcast({ type: 'ROOM_STATE', players, scores, state: 'lobby' });
+        broadcast({ type: 'ROOM_STATE', players, scores });
         renderHostLobby(myCode);
       } else if(data.type === 'SCORE') {
         scores[c.peer] = data.score;
-        broadcast({ type: 'SCORES_UPDATE', scores });
-        renderHostLobby(myCode);
+        if(currentHostGame) updateHostScoreBoard(currentHostGame);
       }
+    });
+    c.on('close', () => {
+      delete players[c.peer];
+      delete scores[c.peer];
+      renderHostLobby(myCode);
     });
   });
 }
 
 function broadcast(data) {
-  connections.forEach(c => c.send(data));
+  connections.forEach(c => { if(c.open) c.send(data); });
 }
 
 function renderHostLobby(code) {
@@ -120,14 +122,18 @@ function renderHostLobby(code) {
   if(qrBox){ qrBox.innerHTML = ""; new QRCode(qrBox, { text: joinUrl, width: 120, height: 120 }); }
 }
 
+let currentHostGame = null;
 function hostStartGame(gKey, duration) {
+  currentHostGame = gKey;
+  scores = {};
+  Object.keys(players).forEach(pId => scores[pId] = 0);
   broadcast({ type: 'START_GAME', game: gKey, duration });
   runHostGameView(gKey, duration);
 }
 
 function runHostGameView(gKey, duration) {
   let left = duration;
-  draw(`<h1>${G[gKey].e} ${G[gKey].n}</h1><div class="card"><h2>남은 시간: <span id="t-left">${left}</span>초</h2><div id="board"></div></div>`);
+  draw(`<h1>${G[gKey].e} ${G[gKey].n}</h1><div class="card"><h2>남은 시간: <span id="t-left">${left}</span>초</h2><div id="board">${renderBars(gKey)}</div></div>`);
   
   let timer = setInterval(() => {
     left--;
@@ -135,10 +141,34 @@ function runHostGameView(gKey, duration) {
     if(el) el.textContent = left;
     if(left <= 0) {
       clearInterval(timer);
+      currentHostGame = null;
       broadcast({ type: 'GAME_OVER' });
-      draw(`<h1>🎉 경기 종료!</h1><button class="btn ok big" onclick="location.reload()">처음으로</button>`);
+      draw(`<h1>🎉 경기 결과</h1><div class="card">${renderBars(gKey)}</div><button class="btn ok big" onclick="location.reload()">처음으로</button>`);
     }
   }, 1000);
+}
+
+function updateHostScoreBoard(gKey) {
+  const board = document.getElementById("board");
+  if(board) board.innerHTML = renderBars(gKey);
+}
+
+function renderBars(gKey) {
+  const r = T.map((_, i) => {
+    const m = Object.entries(players).filter(([_, p]) => p.team === i);
+    if(!m.length) return [i, null];
+    const sum = m.reduce((acc, [pId]) => acc + (scores[pId] ?? (gKey === "stop" ? 10 : 0)), 0);
+    return [i, sum / m.length];
+  }).filter(x => x[1] !== null).sort((a,b) => gKey === "stop" ? a[1]-b[1] : b[1]-a[1]);
+
+  if(!r.length) return `<p>참가팀 대기 중...</p>`;
+  const maxV = Math.max(1, ...r.map(x => gKey === "stop" ? 10 : x[1]));
+  return r.map((x, idx) => {
+    const t = T[x[0]];
+    const w = gKey === "stop" ? Math.max(8, 100 - x[1]*10) : Math.max(8, (x[1]/maxV)*100);
+    const txt = gKey === "stop" ? x[1].toFixed(2) + "초" : Math.round(x[1]) + "점";
+    return `<div class="bar"><span class="nm">${idx===0?"👑 ":""}${t[0]}</span><div class="tr"><div class="fl" style="width:${w}%;background:${t[2]}"></div></div><span class="v">${txt}</span></div>`;
+  }).join("");
 }
 
 // --- 참가자(클라이언트) 로직 ---
@@ -195,7 +225,15 @@ function renderPlayerWait() {
 function runClientGame(gKey) {
   let score = 0;
   if(gKey === 'tap') {
-    draw(`<h2>👆 연타왕</h2><button class="btn pad" onclick="score++; document.getElementById('cnt').textContent=score; conn.send({type:'SCORE', score});">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
+    draw(`<h2>👆 연타왕</h2><button class="btn pad" id="b-tap">터치!! <div id="cnt" style="font-size:3.5rem">0</div></button>`);
+    document.getElementById("b-tap").onpointerdown = (e) => {
+      e.preventDefault();
+      score++;
+      document.getElementById("cnt").textContent = score;
+      if(conn && conn.open) {
+        conn.send({ type: 'SCORE', score });
+      }
+    };
   } else if(gKey === 'stop') {
     let t0 = performance.now(), stopped = false;
     draw(`<h2>⏱️ 10초 멈춰라</h2><div class="huge" id="clock">0.00</div><button class="btn ok big pad" id="b-stop">STOP!</button>`);
@@ -203,12 +241,15 @@ function runClientGame(gKey) {
       let el = (performance.now() - t0)/1000;
       if(!stopped) document.getElementById("clock").textContent = el < 3 ? el.toFixed(2) : "??.??";
     }, 50);
-    document.getElementById("b-stop").onclick = () => {
+    document.getElementById("b-stop").onpointerdown = (e) => {
+      e.preventDefault();
       if(stopped) return;
       stopped = true;
       clearInterval(timer);
       let diff = Math.abs(((performance.now() - t0)/1000) - 10);
-      conn.send({ type: 'SCORE', score: diff });
+      if(conn && conn.open) {
+        conn.send({ type: 'SCORE', score: diff });
+      }
       draw(`<div class="huge">🎯</div><h1>${diff.toFixed(2)}초 차이!</h1>`);
     };
   }
