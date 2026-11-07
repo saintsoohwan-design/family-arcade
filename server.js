@@ -12,26 +12,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 const rooms = {};
 
 io.on('connection', (socket) => {
-  // 방 생성 (진행자)
+  // 1. 방 생성 (진행자)
   socket.on('HOST_CREATE_ROOM', () => {
     const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     rooms[roomCode] = {
       hostId: socket.id,
-      ph: "lobby", // lobby, count, play, result
+      ph: "lobby",
       g: null,
       n: 3,
       left: 0,
-      players: {}, // socketId -> { name, team }
-      scores: {},  // socketId -> val
+      players: {},
+      scores: {},
       tot: [0, 0, 0, 0],
-      played: 0
+      timer: null
     };
     socket.join(roomCode);
     socket.roomCode = roomCode;
     socket.emit('ROOM_CREATED', { roomCode });
   });
 
-  // 참가자 방 입장
+  // 2. 참가자 방 입장
   socket.on('PLAYER_JOIN', ({ roomCode, name, team }) => {
     const room = rooms[roomCode];
     if (!room) return socket.emit('ERROR_MSG', '존재하지 않는 방 코드입니다.');
@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
     socket.emit('JOIN_SUCCESS', { roomCode, name, team });
   });
 
-  // 게임 시작 (진행자)
+  // 3. 게임 시작 (진행자 클릭 처리 보완)
   socket.on('HOST_START_GAME', ({ roomCode, gKey, duration }) => {
     const room = rooms[roomCode];
     if (!room) return;
@@ -55,10 +55,10 @@ io.on('connection', (socket) => {
     room.ph = "count";
     room.n = 3;
 
-    // 참가자 전체에게 시작 상태 알림
-    io.to(roomCode).emit('STATE_UPDATE', room);
-
     if (room.timer) clearInterval(room.timer);
+
+    // 즉시 상태 변경 전송
+    io.to(roomCode).emit('STATE_UPDATE', room);
 
     room.timer = setInterval(() => {
       if (room.ph === "count") {
@@ -73,7 +73,6 @@ io.on('connection', (socket) => {
         if (room.left < 0) {
           clearInterval(room.timer);
           room.ph = "result";
-          room.played++;
           io.to(roomCode).emit('STATE_UPDATE', room);
         } else {
           io.to(roomCode).emit('STATE_UPDATE', room);
@@ -82,7 +81,7 @@ io.on('connection', (socket) => {
     }, 1000);
   });
 
-  // 실시간 점수 송신
+  // 4. 실시간 점수 전송
   socket.on('PLAYER_SCORE', ({ val }) => {
     const roomCode = socket.roomCode;
     if (!roomCode || !rooms[roomCode]) return;
@@ -92,7 +91,7 @@ io.on('connection', (socket) => {
     io.to(room.hostId).emit('LIVE_SCORE_UPDATE', { scores: room.scores });
   });
 
-  // 연결 끊김 처리
+  // 5. 접속 해제
   socket.on('disconnect', () => {
     const roomCode = socket.roomCode;
     if (roomCode && rooms[roomCode]) {
@@ -105,5 +104,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`서버 실행 중 포트: ${PORT}`);
+  console.log(`오락실 백엔드 서버 실행 중 포트: ${PORT}`);
 });
